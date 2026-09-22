@@ -94,7 +94,7 @@ module.exports = {
       from: { path: '^src/macroAnalytics/infrastructure/' },
       to: {
         path: '^src/analytics/',
-        pathNot: '^src/analytics/application/analytics\\.port\\.ts$',
+        pathNot: '^src/analytics/application/(?:analyticsMovementFacts|analyticsBalance)\\.contract\\.ts$',
       },
     },
     {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { AnalyticsMovementFactItem } from '../../analytics/application/analytics.port';
+import type { AnalyticsMovementFactItem } from '../../analytics/application/analyticsMovementFacts.contract';
 import { createAnalyticsContributionPeriodSource } from './analyticsContributionPeriodSource';
 
 const fact = (id: string, effectiveAt: string, ignored = false): AnalyticsMovementFactItem => ({

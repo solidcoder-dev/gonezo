@@ -1,4 +1,4 @@
-import type { AnalyticsAccountBalanceSnapshotInput, AnalyticsAccountBalanceSnapshotResult } from '../../analytics/application/analytics.port';
+import type { AnalyticsAccountBalanceSnapshotInput, AnalyticsAccountBalanceSnapshotResult } from '../../analytics/application/analyticsBalance.contract';
 import type { AccountBalanceFactSourcePort, AccountBalanceFactQuery } from '../application/accountBalanceFactSource.port';
 import { createAccountBalanceFact } from '../domain/accountBalanceFact';
 import { toMacroAccountTypeCode } from './macroAccountTypeMapper';

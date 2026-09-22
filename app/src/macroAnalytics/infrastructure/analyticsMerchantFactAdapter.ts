@@ -1,4 +1,4 @@
-import type { AnalyticsMovementFactItem } from '../../analytics/application/analytics.port';
+import type { AnalyticsMovementFactItem } from '../../analytics/application/analyticsMovementFacts.contract';
 import type { CanonicalMerchantResolverPort } from '../application/canonicalMerchantResolver.port';
 import { UNMAPPED_MACRO_MERCHANT_CODE } from '../domain/macroMerchantCode';
 import { createMerchantFact, type MerchantFact, type MerchantFactKind } from '../domain/merchantFact';

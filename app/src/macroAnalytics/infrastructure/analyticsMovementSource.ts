@@ -1,4 +1,4 @@
-import type { AnalyticsMovementFactItem } from '../../analytics/application/analytics.port';
+import type { AnalyticsMovementFactItem } from '../../analytics/application/analyticsMovementFacts.contract';
 
 export type MacroAnalyticsMovementSource = 'POSTED' | 'EXPECTED' | 'SCHEDULED';
 

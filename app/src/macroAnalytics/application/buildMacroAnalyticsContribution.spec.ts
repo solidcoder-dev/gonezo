@@ -13,8 +13,7 @@ import type { MerchantFact } from '../domain/merchantFact';
 import type { AccountBalanceFactSourcePort } from './accountBalanceFactSource.port';
 import type { TagUsageFact } from '../domain/tagUsageFact';
 import { createTagUsageFact } from '../domain/tagUsageFact';
-import type { AnalyticsPeriodSnapshotPort } from './analyticsPeriodSnapshot.port';
-import type { AnalyticsMovementFactItem } from '../../analytics/application/analytics.port';
+import type { ContributionFactSetSourcePort } from './contributionFactSetSource.port';
 
 type FactQuery = Readonly<{ period: ReturnType<typeof import('../domain/analyticsPeriod').createAnalyticsPeriod>; timeZone: string; currency?: string }>;
 type FinancialFactSource = Readonly<{ listFinancialFacts(query: FactQuery): Promise<readonly FinancialFact[]> }>;
@@ -44,9 +43,9 @@ function snapshotFromSources(
   sharingFacts: SharingFactSource,
   merchantFacts: MerchantFactSource,
   tagUsageFacts: TagUsageFactSource,
-): AnalyticsPeriodSnapshotPort {
+): ContributionFactSetSourcePort {
   return {
-    async readPeriodSnapshot({ period, timeZone }) {
+    async readContributionFacts({ period, timeZone }) {
       const query = { period, timeZone };
       const [financial, categories, recurring, sharing, merchants, tags] = await Promise.all([
         financialFacts.listFinancialFacts(query),
@@ -56,55 +55,7 @@ function snapshotFromSources(
         merchantFacts.listMerchantFacts(query),
         tagUsageFacts.listTagUsageFacts(query),
       ]);
-      const financialIds = financial.map((item) => String(item.id));
-      const auxiliaryFactId = (id: string) => financialIds.includes(id) || financialIds.length !== 1 ? id : financialIds[0];
-      const categoryByFact = new Map<string, CategoryFact[]>(categories.map((item) => [String(item.id), [item]]));
-      const recurringByFact = new Map(recurring.map((item) => [auxiliaryFactId(String(item.id).replace(/\/recurring$/, '')), item]));
-      const sharingByFact = new Map(sharing.map((item) => [auxiliaryFactId(String(item.id).replace(/\/sharing$/, '')), item]));
-      const merchantByFact = new Map(merchants.map((item) => [auxiliaryFactId(String(item.id).replace(/\/merchant$/, '')), item]));
-      const tagCountByFact = new Map<string, number>();
-      for (const item of tags) {
-        const id = auxiliaryFactId(String(item.id).replace(/\/tag-usage$/, ''));
-        tagCountByFact.set(id, (tagCountByFact.get(id) ?? 0) + item.tagCount);
-      }
-      const financialById = new Map(financial.map((item) => [String(item.id), item]));
-      const auxiliary = [...recurring, ...sharing, ...merchants, ...tags];
-      const ids = new Set([...financialById.keys(), ...auxiliary.map((item) => auxiliaryFactId(String(item.id).replace(/\/(?:recurring|sharing|merchant|tag-usage)$/, '')))]);
-      const movements: AnalyticsMovementFactItem[] = [...ids].map((id) => {
-        const item = financialById.get(id) ?? (() => {
-          const source = auxiliary.find((candidate) => String(candidate.id).replace(/\/(?:recurring|sharing|merchant|tag-usage)$/, '') === id);
-          return source && { id, occurredAt: source.occurredAt, source: source.source, kind: source.kind, currency: source.currency, amount: String('amount' in source ? source.amount : 'personalAmount' in source ? source.personalAmount : '0') };
-        })();
-        if (!item) throw new Error(`Missing test fact ${id}`);
-        const recurringFact = recurringByFact.get(id);
-        const sharingFact = sharingByFact.get(id);
-        const merchantFact = merchantByFact.get(id);
-        const tagCount = tagCountByFact.get(id) ?? 0;
-        return {
-          analyticsFactId: id,
-          reference: { source: 'posted', transactionId: id },
-          source: item.source === 'SCHEDULED' ? 'SCHEDULED_PROJECTION' : item.source,
-          schedulingOrigin: recurringFact ? { kind: 'recurring', recurringMovementId: String(recurringFact.seriesId) } : undefined,
-          effectiveAt: item.occurredAt,
-          accountId: 'account',
-          type: item.kind.toLowerCase() as AnalyticsMovementFactItem['type'],
-          currency: item.currency,
-          personalAmount: String(item.amount),
-          fullAmount: sharingFact ? String(sharingFact.fullAmount) : String(item.amount),
-          sharing: sharingFact ? {
-            participantCount: sharingFact.participantCount,
-            settlementParticipantCount: sharingFact.settlementParticipantCount,
-            participantAllocatedAmount: String(sharingFact.participantAllocatedAmount),
-            settlementRequiredAmount: String(sharingFact.settlementRequiredAmount),
-          } : undefined,
-          ignored: false,
-          categoryAllocations: (categoryByFact.get(id) ?? []).map((category) => ({ categoryId: category.category, personalAmount: String(category.amount), fullAmount: String(category.amount) })),
-          tagIds: [],
-          tags: Array.from({ length: tagCount }, (_, index) => ({ key: `${id}-tag-${index}`, displayName: 'Tag' })),
-          merchant: merchantFact ? { key: String(merchantFact.merchant), displayName: String(merchantFact.merchant) } : undefined,
-        };
-      });
-      return { period, movements };
+      return { financial, categories, recurring, sharing, merchants, tagUsage: tags };
     },
   };
 }
@@ -122,7 +73,7 @@ function sources(consent: AnalyticsContributionConsent | null = granted, contrib
     id: `${item.id}/tag-usage`, occurredAt: item.occurredAt, source: item.source, kind: item.kind,
     currency: item.currency, amount: String(item.amount), tagCount: 0,
   })] : [])) };
-  return { consent: consentSource, profile: profileSource, financialFacts: factSource, categoryFacts, recurringFacts, sharingFacts, merchantFacts, accountBalanceFacts, tagUsageFacts, snapshot: snapshotFromSources(factSource, categoryFacts, recurringFacts, sharingFacts, merchantFacts, tagUsageFacts), merchantResolver: { resolve: ({ merchantKey }: { merchantKey: string }) => merchantKey as never }, profileSource, factSource };
+  return { consent: consentSource, profile: profileSource, financialFacts: factSource, categoryFacts, recurringFacts, sharingFacts, merchantFacts, accountBalanceFacts, tagUsageFacts, factSet: snapshotFromSources(factSource, categoryFacts, recurringFacts, sharingFacts, merchantFacts, tagUsageFacts), profileSource, factSource };
 }
 
 describe('buildMacroAnalyticsContribution', () => {
@@ -133,8 +84,7 @@ describe('buildMacroAnalyticsContribution', () => {
       consent: legacy.consent,
       profile: legacy.profile,
       accountBalanceFacts: legacy.accountBalanceFacts,
-      snapshot: { readPeriodSnapshot: vi.fn(async ({ period }) => { await analyticsListMovementFacts(); return { period, movements: [] }; }) },
-      merchantResolver: { resolve: () => null },
+      factSet: { readContributionFacts: vi.fn(async () => { await analyticsListMovementFacts(); return { financial: [], categories: [], recurring: [], sharing: [], merchants: [], tagUsage: [] }; }) },
     }, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' });
 
     expect(result.status).toBe('BUILT');

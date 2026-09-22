@@ -1,4 +1,4 @@
-import type { AnalyticsMovementFactItem } from '../../analytics/application/analytics.port';
+import type { AnalyticsMovementFactItem } from '../../analytics/application/analyticsMovementFacts.contract';
 import { createRecurringFact, type RecurringFact, type RecurringFactKind } from '../domain/recurringFact';
 import { mapAnalyticsMovementSource } from './analyticsMovementSource';
 

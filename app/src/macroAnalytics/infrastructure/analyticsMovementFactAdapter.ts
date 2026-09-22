@@ -1,4 +1,4 @@
-import type { AnalyticsMovementFactItem } from '../../analytics/application/analytics.port';
+import type { AnalyticsMovementFactItem } from '../../analytics/application/analyticsMovementFacts.contract';
 import { createFinancialFact, type FinancialFact, type FinancialFactKind } from '../domain/financialFact';
 import { mapAnalyticsMovementSource } from './analyticsMovementSource';
 

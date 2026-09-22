@@ -1,4 +1,4 @@
-import type { AnalyticsListMovementFactsInput } from '../../analytics/application/analytics.port';
+import type { AnalyticsListMovementFactsInput } from '../../analytics/application/analyticsMovementFacts.contract';
 import type { AnalyticsPeriod } from '../domain/analyticsPeriod';
 
 export type AnalyticsMovementFactQuery = Readonly<{

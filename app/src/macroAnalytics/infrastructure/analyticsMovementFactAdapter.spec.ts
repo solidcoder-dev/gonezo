@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { AnalyticsMovementFactItem } from '../../analytics/application/analytics.port';
+import type { AnalyticsMovementFactItem } from '../../analytics/application/analyticsMovementFacts.contract';
 import { adaptAnalyticsMovementFact } from './analyticsMovementFactAdapter';
 
 function sourceFact(overrides: Partial<AnalyticsMovementFactItem> = {}): AnalyticsMovementFactItem {

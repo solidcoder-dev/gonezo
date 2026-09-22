@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { AnalyticsMovementFactItem } from '../../analytics/application/analytics.port';
+import type { AnalyticsMovementFactItem } from '../../analytics/application/analyticsMovementFacts.contract';
 import { createMacroMerchantCode } from '../domain/macroMerchantCode';
 import type { CanonicalMerchantResolverPort } from '../application/canonicalMerchantResolver.port';
 import { adaptAnalyticsMerchantFact } from './analyticsMerchantFactAdapter';

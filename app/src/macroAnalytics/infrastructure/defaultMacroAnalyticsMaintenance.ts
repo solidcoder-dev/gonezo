@@ -15,13 +15,13 @@ import { CorePlugin } from '../../core/infrastructure/corePlugin';
 import { canonicalMerchantCatalog } from './canonicalMerchantCatalog';
 import { createCanonicalMerchantResolver } from './canonicalMerchantResolver';
 import { createAnalyticsAccountBalanceFactSource } from './analyticsAccountBalanceFactSource';
-import { createAnalyticsPeriodSnapshotSource } from './analyticsPeriodSnapshotSource';
+import { createAnalyticsContributionFactSetSource } from './analyticsContributionFactSetSource';
 
 const runner = new SerializedMacroAnalyticsMaintenanceRunner();
 const consent = new NativeAnalyticsContributionConsentAdapter();
 const merchantResolver = createCanonicalMerchantResolver(canonicalMerchantCatalog);
 const accountBalanceFacts = createAnalyticsAccountBalanceFactSource(CorePlugin);
-const snapshot = createAnalyticsPeriodSnapshotSource(CorePlugin);
+const factSet = createAnalyticsContributionFactSetSource(CorePlugin, merchantResolver);
 const identity = new NativeAnalyticsContributorIdentityAdapter();
 const outbox = new NativeMacroAnalyticsOutboxAdapter();
 const latest = new NativeLatestMacroAnalyticsPublicationAdapter();
@@ -40,7 +40,7 @@ export function runDefaultMacroAnalyticsMaintenance(userId: string, analyticsPro
       outbox,
       processor,
       prepare: (input) => prepareMacroAnalyticsPublication({
-          contribution: { consent, profile: createAnalyticsProfileContributionAdapter(analyticsProfile), accountBalanceFacts, snapshot, merchantResolver }, identity,
+          contribution: { consent, profile: createAnalyticsProfileContributionAdapter(analyticsProfile), accountBalanceFacts, factSet }, identity,
         generateContributorId: generateAnalyticsContributorId,
         outbox,
         latest,

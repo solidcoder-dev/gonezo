@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { buildMacroAnalyticsContribution } from '../application/buildMacroAnalyticsContribution';
 import { createAnalyticsContributionConsent, type AnalyticsContributionConsent } from '../domain/analyticsContributionConsent';
 import type { ContributionProfile } from '../domain/contributionProfile';
-import { createAnalyticsPeriod } from '../domain/analyticsPeriod';
+import { createAnalyticsContributionFactSetSource } from './analyticsContributionFactSetSource';
 
 const profile: ContributionProfile = { birthYear: 1995, sex: 'female', countryCode: 'ES', regionCode: 'ES-CN' };
 const granted = createAnalyticsContributionConsent({ userId: 'private-user-id', status: 'GRANTED', noticeVersion: 1, decidedAt: '2026-09-18T10:00:00Z' });
@@ -16,13 +16,7 @@ describe('analytics movement read count characterization', () => {
       consent,
       profile: { get: vi.fn(async () => profile) },
       accountBalanceFacts: { listAccountBalanceFacts: vi.fn(async () => []) },
-      snapshot: {
-        readPeriodSnapshot: vi.fn(async ({ period }) => {
-          const result = await analyticsListMovementFacts();
-          return { period: createAnalyticsPeriod(period.value), movements: result.items };
-        }),
-      },
-      merchantResolver: { resolve: () => null },
+      factSet: createAnalyticsContributionFactSetSource({ analyticsListMovementFacts }, { resolve: () => null }),
     }, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' });
 
     expect(analyticsListMovementFacts).toHaveBeenCalledTimes(1);

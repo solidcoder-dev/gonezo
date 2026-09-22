@@ -4,7 +4,7 @@ import { createAnalyticsPeriod } from '../domain/analyticsPeriod';
 import { createAnalyticsContributionConsent } from '../domain/analyticsContributionConsent';
 import { createFinancialFact } from '../domain/financialFact';
 import { ExactDecimal } from '../../shared/domain/exactDecimal';
-import type { AnalyticsMovementFactItem } from '../../analytics/application/analytics.port';
+import type { AnalyticsMovementFactItem } from '../../analytics/application/analyticsMovementFacts.contract';
 import type { MacroAnalyticsPublication } from '../domain/macroAnalyticsPublication';
 import { createCohort } from '../domain/cohort';
 import { CalculateContributorMetrics } from '../application/CalculateContributorMetrics';
@@ -21,6 +21,7 @@ import { contributorRecurringMetricCalculators } from '../application/contributo
 import { contributorTagUsageMetricCalculators } from '../application/contributorTagUsageMetrics';
 import { cohortTagUsageMetricCalculators } from '../application/cohortTagUsageMetrics';
 import { cohortRecurringMetricCalculators } from '../application/cohortRecurringMetrics';
+import { createAnalyticsContributionFactSetSource } from './analyticsContributionFactSetSource';
 import { serializeMacroAnalyticsPublicationV7 } from './MacroAnalyticsPublicationWireV7';
 import { LocalMacroAnalyticsPublicationProcessor } from '../application/LocalMacroAnalyticsPublicationProcessor';
 import { RunMacroAnalyticsMaintenance } from '../application/RunMacroAnalyticsMaintenance';
@@ -72,10 +73,9 @@ describe('local Macro Analytics lifecycle integration', () => {
     const consent = { get: vi.fn(async () => createAnalyticsContributionConsent({ userId, status: 'GRANTED', noticeVersion: 1, decidedAt: '2026-01-01T00:00:00Z' })), save: vi.fn(async () => {}) };
     const profile = { get: vi.fn(async () => ({ birthYear: 1995, sex: 'female' as const, countryCode: 'GB', regionCode: 'GB-ENG' })) };
     const accountBalanceFacts = { listAccountBalanceFacts: vi.fn(async () => []) };
-    const snapshot = {
-      readPeriodSnapshot: vi.fn(async ({ period }: { period: ReturnType<typeof createAnalyticsPeriod> }) => ({
-        period,
-        movements: [
+    const merchantResolver = { resolve: ({ merchantKey }: { merchantKey: string }) => merchantKey === 'mercadona' ? createMacroMerchantCode('MERCADONA') : null };
+    const factSet = createAnalyticsContributionFactSetSource({
+      analyticsListMovementFacts: vi.fn(async () => ({ items: [
           ...facts.filter((fact) => fact.source !== 'SCHEDULED').map((fact): AnalyticsMovementFactItem => ({
             ...postedMerchantMovement,
             analyticsFactId: String(fact.id),
@@ -90,10 +90,9 @@ describe('local Macro Analytics lifecycle integration', () => {
             type: fact.kind === 'INCOME' ? 'income' : 'expense',
           })),
           { ...scheduledOccurrence },
-        ],
-      })),
-    };
-    const contributionPorts = { consent, profile, accountBalanceFacts, snapshot, merchantResolver: { resolve: ({ merchantKey }: { merchantKey: string }) => merchantKey === 'mercadona' ? createMacroMerchantCode('MERCADONA') : null } };
+      ] })),
+    }, merchantResolver);
+    const contributionPorts = { consent, profile, accountBalanceFacts, factSet };
     const identity = new InMemoryAnalyticsContributorIdentityAdapter();
     const outbox = new InMemoryMacroAnalyticsOutboxAdapter();
     const latest = new Map<string, MacroAnalyticsPublication>();

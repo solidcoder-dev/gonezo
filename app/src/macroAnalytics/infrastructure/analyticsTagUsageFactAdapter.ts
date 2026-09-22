@@ -1,4 +1,4 @@
-import type { AnalyticsMovementFactItem } from '../../analytics/application/analytics.port';
+import type { AnalyticsMovementFactItem } from '../../analytics/application/analyticsMovementFacts.contract';
 import { createTagUsageFact, type TagUsageFact, type TagUsageFactKind } from '../domain/tagUsageFact';
 import { mapAnalyticsMovementSource } from './analyticsMovementSource';
 

@@ -1,16 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createAnalyticsPeriod } from '../domain/analyticsPeriod';
-import { createAnalyticsPeriodSnapshotSource } from './analyticsPeriodSnapshotSource';
+import { createAnalyticsContributionFactSetSource } from './analyticsContributionFactSetSource';
 
-describe('analytics period snapshot source', () => {
-  it('reads movement facts once and preserves the period boundary', async () => {
-    const analyticsListMovementFacts = vi.fn(async () => ({ items: [{ analyticsFactId: 'fact-1' }] as never[] }));
-    const source = createAnalyticsPeriodSnapshotSource({ analyticsListMovementFacts });
+describe('analytics contribution fact-set source', () => {
+  it('reads movement facts once and projects Macro-owned facts', async () => {
+    const analyticsListMovementFacts = vi.fn(async () => ({ items: [] }));
+    const source = createAnalyticsContributionFactSetSource({ analyticsListMovementFacts }, { resolve: () => null });
     const period = createAnalyticsPeriod('2026-09');
 
-    const snapshot = await source.readPeriodSnapshot({ period, timeZone: 'Europe/Madrid' });
+    const facts = await source.readContributionFacts({ period, timeZone: 'Europe/Madrid' });
 
     expect(analyticsListMovementFacts).toHaveBeenCalledTimes(1);
-    expect(snapshot).toEqual({ period, movements: [{ analyticsFactId: 'fact-1' }] });
+    expect(facts).toEqual({ financial: [], categories: [], recurring: [], sharing: [], merchants: [], tagUsage: [] });
   });
 });

@@ -16,8 +16,7 @@ import type { MacroAnalyticsOutboxPort } from './macroAnalyticsOutbox.port';
 import type { LatestMacroAnalyticsPublicationPort } from './latestMacroAnalyticsPublication.port';
 import { prepareMacroAnalyticsPublication } from './prepareMacroAnalyticsPublication';
 import { createTagUsageFact } from '../domain/tagUsageFact';
-import type { AnalyticsMovementFactItem } from '../../analytics/application/analytics.port';
-import type { AnalyticsPeriodSnapshotPort } from './analyticsPeriodSnapshot.port';
+import type { ContributionFactSetSourcePort } from './contributionFactSetSource.port';
 
 type FactQuery = Readonly<{ period: ReturnType<typeof createAnalyticsPeriod>; timeZone: string; currency?: string }>;
 type FinancialFactSource = Readonly<{ listFinancialFacts(query: FactQuery): Promise<readonly FinancialFact[]> }>;
@@ -41,38 +40,16 @@ function snapshotFor(
   financialFacts: FinancialFactSource,
   categoryFacts: CategoryFactSource,
   tagUsageFacts: { listTagUsageFacts: (query: { period: ReturnType<typeof createAnalyticsPeriod>; timeZone: string }) => Promise<readonly ReturnType<typeof createTagUsageFact>[]> },
-): AnalyticsPeriodSnapshotPort {
+): ContributionFactSetSourcePort {
   return {
-    async readPeriodSnapshot({ period, timeZone }) {
+    async readContributionFacts({ period, timeZone }) {
       const query = { period, timeZone };
       const [financial, categories, tags] = await Promise.all([
         financialFacts.listFinancialFacts(query),
         categoryFacts.listCategoryFacts(query),
         tagUsageFacts.listTagUsageFacts(query),
       ]);
-      const categoriesById = new Map(categories.map((item) => [String(item.id), item]));
-      const tagsById = new Map(tags.map((item) => [String(item.id).replace(/\/tag-usage$/, ''), item]));
-      const movements: AnalyticsMovementFactItem[] = financial.map((item) => {
-        const id = String(item.id);
-        const category = categoriesById.get(id);
-        const tagCount = tagsById.get(id)?.tagCount ?? 0;
-        return {
-          analyticsFactId: id,
-          reference: { source: 'posted', transactionId: id },
-          source: item.source === 'SCHEDULED' ? 'SCHEDULED_PROJECTION' : item.source,
-          effectiveAt: item.occurredAt,
-          accountId: 'account',
-          type: item.kind.toLowerCase() as AnalyticsMovementFactItem['type'],
-          currency: item.currency,
-          personalAmount: String(item.amount),
-          fullAmount: String(item.amount),
-          ignored: false,
-          categoryAllocations: category ? [{ categoryId: '00000000-0000-4000-8000-000000000102', personalAmount: String(category.amount), fullAmount: String(category.amount) }] : [],
-          tagIds: [],
-          tags: Array.from({ length: tagCount }, (_, index) => ({ key: `${id}-tag-${index}`, displayName: 'Tag' })),
-        };
-      });
-      return { period, movements };
+      return { financial, categories, recurring: [], sharing: [], merchants: [], tagUsage: tags };
     },
   };
 }
@@ -116,7 +93,7 @@ function setup(options: { consent?: 'GRANTED' | 'DECLINED' | 'WITHDRAWN' | null;
     currency: item.currency, amount: String(item.amount), tagCount: 0,
   }))) };
   const ports = {
-    contribution: { consent, profile: profileSource, financialFacts, categoryFacts, recurringFacts, sharingFacts, merchantFacts, accountBalanceFacts, tagUsageFacts, snapshot: snapshotFor(financialFacts, categoryFacts, tagUsageFacts), merchantResolver: { resolve: () => null } },
+    contribution: { consent, profile: profileSource, accountBalanceFacts, factSet: snapshotFor(financialFacts, categoryFacts, tagUsageFacts) },
     identity,
     generateContributorId: vi.fn(() => createAnalyticsContributorId('opaque-random-id')),
     outbox,

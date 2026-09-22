@@ -1,4 +1,4 @@
-import type { AnalyticsListMovementFactsInput, AnalyticsListMovementFactsResult } from '../../analytics/application/analytics.port';
+import type { AnalyticsListMovementFactsInput, AnalyticsListMovementFactsResult } from '../../analytics/application/analyticsMovementFacts.contract';
 import type { ContributionPeriodSourcePort } from '../application/contributionPeriodSource.port';
 import { analyticsPeriodForFact, createAnalyticsPeriod } from '../domain/analyticsPeriod';
 import type { AnalyticsPeriod } from '../domain/analyticsPeriod';
