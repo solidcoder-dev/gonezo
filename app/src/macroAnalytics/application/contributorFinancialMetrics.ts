@@ -1,11 +1,11 @@
 import { ExactDecimal } from '../../shared/domain/exactDecimal';
-import { countMetricValue, createMetricDefinition, MetricId, MetricKey, MetricVersion, moneyMetricValue, type MetricDefinition, type MetricValue } from '../../shared/domain/analyticsMetric';
+import { countMetricValue, defineMetric, moneyMetricValue, type MetricDefinition, type MetricValue } from '../../shared/domain/analyticsMetric';
 import type { ContributorMetricCalculator } from '../domain/contributorMetric';
 import type { FinancialFactKind, FinancialFactSource } from '../domain/financialFact';
 import type { MacroAnalyticsContribution } from '../domain/macroAnalyticsContribution';
 
 function definition(key: string, valueKind: MetricDefinition['valueKind']): MetricDefinition {
-  return createMetricDefinition(MetricId.create(MetricKey.create(key), MetricVersion.create(1)), valueKind);
+  return defineMetric({ key, valueKind });
 }
 
 export const postedIncomeTotal = definition('posted_income_total', 'MONEY');

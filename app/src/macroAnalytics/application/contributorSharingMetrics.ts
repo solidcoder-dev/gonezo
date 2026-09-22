@@ -1,12 +1,12 @@
 import { ExactDecimal } from '../../shared/domain/exactDecimal';
-import { createMetricDefinition, MetricId, MetricKey, MetricVersion, moneyMetricValue, ratioMetricValue, type MetricDefinition, type MetricValue } from '../../shared/domain/analyticsMetric';
+import { defineMetric, moneyMetricValue, ratioMetricValue, type MetricDefinition, type MetricValue } from '../../shared/domain/analyticsMetric';
 import type { ContributorMetricCalculator } from '../domain/contributorMetric';
 import { hasSharingContribution } from '../domain/contributionCapabilities';
 import type { MacroAnalyticsContribution } from '../domain/macroAnalyticsContribution';
 import { findSharingContributionBucket } from '../domain/sharingContribution';
 
 function definition(key: string, valueKind: MetricDefinition['valueKind']): MetricDefinition {
-  return createMetricDefinition(MetricId.create(MetricKey.create(key), MetricVersion.create(1)), valueKind);
+  return defineMetric({ key, valueKind });
 }
 
 export const sharedPostedPersonalExpenseTotal = definition('shared_posted_personal_expense_total', 'MONEY');

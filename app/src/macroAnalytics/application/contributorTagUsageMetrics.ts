@@ -1,11 +1,11 @@
 import { ExactDecimal } from '../../shared/domain/exactDecimal';
-import { createMetricDefinition, MetricId, MetricKey, MetricVersion, moneyMetricValue, ratioMetricValue, type MetricDefinition } from '../../shared/domain/analyticsMetric';
+import { defineMetric, moneyMetricValue, ratioMetricValue, type MetricDefinition } from '../../shared/domain/analyticsMetric';
 import type { ContributorMetricCalculator } from '../domain/contributorMetric';
 import { findTagUsageMovementBucket } from '../domain/contributionCapabilities';
 import type { MacroAnalyticsContribution } from '../domain/macroAnalyticsContribution';
 
 function definition(key: string, kind: MetricDefinition['valueKind']): MetricDefinition {
-  return createMetricDefinition(MetricId.create(MetricKey.create(key), MetricVersion.create(1)), kind);
+  return defineMetric({ key, valueKind: kind });
 }
 
 export const taggedPostedExpenseTotal = definition('tagged_posted_expense_total', 'MONEY');

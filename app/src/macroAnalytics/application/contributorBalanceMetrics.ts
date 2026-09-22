@@ -1,10 +1,10 @@
-import { countMetricValue, createMetricDefinition, MetricId, MetricKey, MetricVersion, moneyMetricValue, type MetricDefinition, type MetricValue } from '../../shared/domain/analyticsMetric';
+import { countMetricValue, defineMetric, moneyMetricValue, type MetricDefinition, type MetricValue } from '../../shared/domain/analyticsMetric';
 import { ExactDecimal } from '../../shared/domain/exactDecimal';
 import { balanceCurrencyForContribution } from '../domain/accountBalanceEligibility';
 import type { ContributorMetricCalculator } from '../domain/contributorMetric';
 
 function definition(key: string, kind: MetricDefinition['valueKind']): MetricDefinition {
-  return createMetricDefinition(MetricId.create(MetricKey.create(key), MetricVersion.create(1)), kind);
+  return defineMetric({ key, valueKind: kind });
 }
 
 export const periodEndAccountBalance = definition('period_end_account_balance', 'MONEY');

@@ -51,6 +51,10 @@ export type MetricValueKind = 'MONEY' | 'RATIO' | 'COUNT';
 
 export type MetricDefinition = Readonly<{ id: MetricId; valueKind: MetricValueKind }>;
 
+export function defineMetric(input: Readonly<{ key: string; version?: number; valueKind: MetricValueKind }>): MetricDefinition {
+  return createMetricDefinition(MetricId.create(MetricKey.create(input.key), MetricVersion.create(input.version ?? 1)), input.valueKind);
+}
+
 export type MetricValue =
   | Readonly<{ kind: 'MONEY'; value: ExactDecimal; currency: string }>
   | Readonly<{ kind: 'RATIO'; value: ExactDecimal }>

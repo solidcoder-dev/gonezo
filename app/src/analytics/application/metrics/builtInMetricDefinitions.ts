@@ -1,7 +1,7 @@
-import { createMetricDefinition, MetricId, MetricKey, MetricVersion } from '../../../shared/domain/analyticsMetric';
+import { defineMetric } from '../../../shared/domain/analyticsMetric';
 
 function definition(key: string, valueKind: 'MONEY' | 'RATIO') {
-  return createMetricDefinition(MetricId.create(MetricKey.create(key), MetricVersion.create(1)), valueKind);
+  return defineMetric({ key, valueKind });
 }
 
 export const INCOME_TOTAL_V1 = definition('income_total', 'MONEY');

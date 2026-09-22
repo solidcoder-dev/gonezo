@@ -1,9 +1,9 @@
-import { createMetricDefinition, MetricId, MetricKey, MetricVersion, moneyMetricValue, ratioMetricValue, type MetricDefinition, type MetricValue } from '../../shared/domain/analyticsMetric';
+import { defineMetric, moneyMetricValue, ratioMetricValue, type MetricDefinition, type MetricValue } from '../../shared/domain/analyticsMetric';
 import type { CohortMetricCalculator } from '../domain/cohortMetric';
 import { exactMedian } from '../domain/decimalStatistics';
 
 function definition(key: string, valueKind: MetricDefinition['valueKind']): MetricDefinition {
-  return createMetricDefinition(MetricId.create(MetricKey.create(key), MetricVersion.create(1)), valueKind);
+  return defineMetric({ key, valueKind });
 }
 
 export const medianRecurringPostedExpense = definition('median_recurring_posted_expense', 'MONEY');

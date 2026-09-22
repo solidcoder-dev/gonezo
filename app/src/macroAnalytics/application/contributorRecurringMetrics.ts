@@ -1,12 +1,12 @@
 import { ExactDecimal } from '../../shared/domain/exactDecimal';
-import { createMetricDefinition, MetricId, MetricKey, MetricVersion, moneyMetricValue, ratioMetricValue, type MetricDefinition, type MetricValue } from '../../shared/domain/analyticsMetric';
+import { defineMetric, moneyMetricValue, ratioMetricValue, type MetricDefinition, type MetricValue } from '../../shared/domain/analyticsMetric';
 import type { ContributorMetricCalculator } from '../domain/contributorMetric';
 import { hasRecurringContribution } from '../domain/contributionCapabilities';
 import type { RecurringFactSource } from '../domain/recurringFact';
 import type { MacroAnalyticsContribution, MacroAnalyticsContributionV3, MacroAnalyticsContributionV4, MacroAnalyticsContributionV5, MacroAnalyticsContributionV6, MacroAnalyticsContributionV7 } from '../domain/macroAnalyticsContribution';
 
 function definition(key: string, valueKind: MetricDefinition['valueKind']): MetricDefinition {
-  return createMetricDefinition(MetricId.create(MetricKey.create(key), MetricVersion.create(1)), valueKind);
+  return defineMetric({ key, valueKind });
 }
 
 export const recurringPostedExpenseTotal = definition('recurring_posted_expense_total', 'MONEY');
