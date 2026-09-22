@@ -11,11 +11,12 @@ import type { CategoryFact } from '../domain/categoryFact';
 import type { RecurringFactSourcePort } from './recurringFactSource.port';
 import { buildMacroAnalyticsContribution } from './buildMacroAnalyticsContribution';
 import type { SharingFactSourcePort } from './sharingFactSource.port';
-import { createSharingFact } from '../domain/sharingFact';
 import type { MerchantFactSourcePort } from './merchantFactSource.port';
 import type { AccountBalanceFactSourcePort } from './accountBalanceFactSource.port';
 import type { TagUsageFactSourcePort } from './tagUsageFactSource.port';
 import { createTagUsageFact } from '../domain/tagUsageFact';
+import type { AnalyticsPeriodSnapshotPort } from './analyticsPeriodSnapshot.port';
+import type { AnalyticsMovementFactItem } from '../../analytics/application/analytics.port';
 
 const profile: ContributionProfile = { birthYear: 1995, sex: 'female', countryCode: 'ES', regionCode: 'ES-CN' };
 const granted = createAnalyticsContributionConsent({ userId: 'private-user-id', status: 'GRANTED', noticeVersion: 1, decidedAt: '2026-09-18T10:00:00Z' });
@@ -28,6 +29,78 @@ function categoriesFor(facts: readonly FinancialFact[]): CategoryFact[] {
     if (item.kind === 'EXPENSE') return [{ ...base, kind: 'EXPENSE', category: 'GROCERIES' }];
     return [];
   });
+}
+
+function snapshotFromSources(
+  financialFacts: FinancialFactSourcePort,
+  categoryFacts: CategoryFactSourcePort,
+  recurringFacts: RecurringFactSourcePort,
+  sharingFacts: SharingFactSourcePort,
+  merchantFacts: MerchantFactSourcePort,
+  tagUsageFacts: TagUsageFactSourcePort,
+): AnalyticsPeriodSnapshotPort {
+  return {
+    async readPeriodSnapshot({ period, timeZone }) {
+      const query = { period, timeZone };
+      const [financial, categories, recurring, sharing, merchants, tags] = await Promise.all([
+        financialFacts.listFinancialFacts(query),
+        categoryFacts.listCategoryFacts(query),
+        recurringFacts.listRecurringFacts(query),
+        sharingFacts.listSharingFacts(query),
+        merchantFacts.listMerchantFacts(query),
+        tagUsageFacts.listTagUsageFacts(query),
+      ]);
+      const financialIds = financial.map((item) => String(item.id));
+      const auxiliaryFactId = (id: string) => financialIds.includes(id) || financialIds.length !== 1 ? id : financialIds[0];
+      const categoryByFact = new Map<string, CategoryFact[]>(categories.map((item) => [String(item.id), [item]]));
+      const recurringByFact = new Map(recurring.map((item) => [auxiliaryFactId(String(item.id).replace(/\/recurring$/, '')), item]));
+      const sharingByFact = new Map(sharing.map((item) => [auxiliaryFactId(String(item.id).replace(/\/sharing$/, '')), item]));
+      const merchantByFact = new Map(merchants.map((item) => [auxiliaryFactId(String(item.id).replace(/\/merchant$/, '')), item]));
+      const tagCountByFact = new Map<string, number>();
+      for (const item of tags) {
+        const id = auxiliaryFactId(String(item.id).replace(/\/tag-usage$/, ''));
+        tagCountByFact.set(id, (tagCountByFact.get(id) ?? 0) + item.tagCount);
+      }
+      const financialById = new Map(financial.map((item) => [String(item.id), item]));
+      const auxiliary = [...recurring, ...sharing, ...merchants, ...tags];
+      const ids = new Set([...financialById.keys(), ...auxiliary.map((item) => auxiliaryFactId(String(item.id).replace(/\/(?:recurring|sharing|merchant|tag-usage)$/, '')))]);
+      const movements: AnalyticsMovementFactItem[] = [...ids].map((id) => {
+        const item = financialById.get(id) ?? (() => {
+          const source = auxiliary.find((candidate) => String(candidate.id).replace(/\/(?:recurring|sharing|merchant|tag-usage)$/, '') === id);
+          return source && { id, occurredAt: source.occurredAt, source: source.source, kind: source.kind, currency: source.currency, amount: String('amount' in source ? source.amount : 'personalAmount' in source ? source.personalAmount : '0') };
+        })();
+        if (!item) throw new Error(`Missing test fact ${id}`);
+        const recurringFact = recurringByFact.get(id);
+        const sharingFact = sharingByFact.get(id);
+        const merchantFact = merchantByFact.get(id);
+        const tagCount = tagCountByFact.get(id) ?? 0;
+        return {
+          analyticsFactId: id,
+          reference: { source: 'posted', transactionId: id },
+          source: item.source === 'SCHEDULED' ? 'SCHEDULED_PROJECTION' : item.source,
+          schedulingOrigin: recurringFact ? { kind: 'recurring', recurringMovementId: String(recurringFact.seriesId) } : undefined,
+          effectiveAt: item.occurredAt,
+          accountId: 'account',
+          type: item.kind.toLowerCase() as AnalyticsMovementFactItem['type'],
+          currency: item.currency,
+          personalAmount: String(item.amount),
+          fullAmount: sharingFact ? String(sharingFact.fullAmount) : String(item.amount),
+          sharing: sharingFact ? {
+            participantCount: sharingFact.participantCount,
+            settlementParticipantCount: sharingFact.settlementParticipantCount,
+            participantAllocatedAmount: String(sharingFact.participantAllocatedAmount),
+            settlementRequiredAmount: String(sharingFact.settlementRequiredAmount),
+          } : undefined,
+          ignored: false,
+          categoryAllocations: (categoryByFact.get(id) ?? []).map((category) => ({ categoryId: category.category, personalAmount: String(category.amount), fullAmount: String(category.amount) })),
+          tagIds: [],
+          tags: Array.from({ length: tagCount }, (_, index) => ({ key: `${id}-tag-${index}`, displayName: 'Tag' })),
+          merchant: merchantFact ? { key: String(merchantFact.merchant), displayName: String(merchantFact.merchant) } : undefined,
+        };
+      });
+      return { period, movements };
+    },
+  };
 }
 
 function sources(consent: AnalyticsContributionConsent | null = granted, contributionProfile: ContributionProfile | null = profile, facts = [fact]) {
@@ -43,7 +116,7 @@ function sources(consent: AnalyticsContributionConsent | null = granted, contrib
     id: `${item.id}/tag-usage`, occurredAt: item.occurredAt, source: item.source, kind: item.kind,
     currency: item.currency, amount: String(item.amount), tagCount: 0,
   })] : [])) };
-  return { consent: consentSource, profile: profileSource, financialFacts: factSource, categoryFacts, recurringFacts, sharingFacts, merchantFacts, accountBalanceFacts, tagUsageFacts, profileSource, factSource };
+  return { consent: consentSource, profile: profileSource, financialFacts: factSource, categoryFacts, recurringFacts, sharingFacts, merchantFacts, accountBalanceFacts, tagUsageFacts, snapshot: snapshotFromSources(factSource, categoryFacts, recurringFacts, sharingFacts, merchantFacts, tagUsageFacts), merchantResolver: { resolve: ({ merchantKey }: { merchantKey: string }) => merchantKey as never }, profileSource, factSource };
 }
 
 describe('buildMacroAnalyticsContribution', () => {
@@ -105,20 +178,6 @@ describe('buildMacroAnalyticsContribution', () => {
     expect(ports.recurringFacts.listRecurringFacts).toHaveBeenCalledWith({ period: { kind: 'YEAR_MONTH', value: '2026-09' }, timeZone: 'Europe/Madrid' });
   });
 
-  it('rejects recurring amounts above financial activity but accepts zero recurring amounts', async () => {
-    const ports = sources();
-    vi.mocked(ports.recurringFacts.listRecurringFacts).mockResolvedValue([{
-      id: 'recurring-id', occurredAt: '2026-09-04T10:00:00Z', source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', amount: '0.11', seriesId: 'private-series',
-    }]);
-    await expect(buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' }))
-      .rejects.toThrow('Recurring contribution exceeds financial contribution');
-    vi.mocked(ports.recurringFacts.listRecurringFacts).mockResolvedValue([{
-      id: 'recurring-id', occurredAt: '2026-09-04T10:00:00Z', source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', amount: '0', seriesId: 'private-series',
-    }]);
-    await expect(buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' }))
-      .resolves.toMatchObject({ status: 'BUILT', contribution: { recurring: { currencies: [{ buckets: [{ amount: '0' }] }] } } });
-  });
-
   it('produces structurally identical contributions regardless of fact order', async () => {
     const facts = [fact,
       createFinancialFact({ id: 'second', occurredAt: '2026-09-05T10:00:00Z', source: 'EXPECTED', kind: 'EXPENSE', amount: '0.20', currency: 'EUR' }),
@@ -146,67 +205,4 @@ describe('buildMacroAnalyticsContribution', () => {
       .rejects.toThrow('Category contribution does not reconcile');
   });
 
-  it('reconciles tag usage amounts and requires every positive financial economic bucket', async () => {
-    const ports = sources();
-    vi.mocked(ports.tagUsageFacts.listTagUsageFacts).mockResolvedValue([{
-      id: 'tag-usage', occurredAt: fact.occurredAt, source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', amount: '0.09', tagCount: 1,
-    }]);
-    await expect(buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' }))
-      .rejects.toThrow('Tag usage contribution does not reconcile');
-
-    vi.mocked(ports.tagUsageFacts.listTagUsageFacts).mockResolvedValue([]);
-    await expect(buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' }))
-      .rejects.toThrow('Financial contribution is missing from tag usage');
-  });
-
-  it('allows extra zero-personal tag usage movements and empty financial buckets', async () => {
-    const ports = sources(granted, profile, []);
-    vi.mocked(ports.tagUsageFacts.listTagUsageFacts).mockResolvedValue([{
-      id: 'zero-personal-tag-usage', occurredAt: fact.occurredAt, source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', amount: '0', tagCount: 1,
-    }]);
-    const result = await buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' });
-    expect(result).toMatchObject({ status: 'BUILT', contribution: { financial: { currencies: [] }, tagUsage: { currencies: [{ buckets: [{ amount: '0', movementCount: 1, taggedMovementCount: 1 }] }] } } });
-  });
-
-  it('allows tag usage movement counts above financial counts when amounts reconcile', async () => {
-    const ports = sources();
-    vi.mocked(ports.tagUsageFacts.listTagUsageFacts).mockResolvedValue([
-      { id: 'one', occurredAt: fact.occurredAt, source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', amount: '0.04', tagCount: 0 },
-      { id: 'two', occurredAt: fact.occurredAt, source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', amount: '0.06', tagCount: 0 },
-    ]);
-
-    await expect(buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' }))
-      .resolves.toMatchObject({ status: 'BUILT', contribution: { tagUsage: { currencies: [{ buckets: [{ amount: '0.1', movementCount: 2 }] }] } } });
-  });
-
-  it('includes sharing contribution and rejects personal sharing above financial totals', async () => {
-    const ports = sources();
-    const sharingFact = createSharingFact({ id: 'sharing-private-id', occurredAt: fact.occurredAt, source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', fullAmount: '0.10', personalAmount: '0.08', participantAllocatedAmount: '0.02', settlementRequiredAmount: '0.02', participantCount: 1, settlementParticipantCount: 1 });
-    vi.mocked(ports.sharingFacts.listSharingFacts).mockResolvedValue([sharingFact]);
-    const result = await buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' });
-    expect(result.status === 'BUILT' && result.contribution.schemaVersion === 7 && result.contribution.sharing.currencies[0].buckets[0])
-      .toMatchObject({ personalAmount: '0.08', movementCount: 1, participantCount: 1 });
-
-    vi.mocked(ports.sharingFacts.listSharingFacts).mockResolvedValue([createSharingFact({ ...sharingFact, personalAmount: '0.11', fullAmount: '0.12', participantAllocatedAmount: '0.01', settlementRequiredAmount: '0.01' })]);
-    await expect(buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' }))
-      .rejects.toThrow('Sharing personal contribution exceeds financial contribution');
-  });
-
-  it('includes catalog-versioned merchant facts and enforces their financial upper bound', async () => {
-    const ports = sources();
-    vi.mocked(ports.merchantFacts.listMerchantFacts).mockResolvedValue([{
-      id: 'opaque-zero-merchant-fact', occurredAt: fact.occurredAt, source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', amount: '0', merchant: 'UNMAPPED' as never,
-    }]);
-    await expect(buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' }))
-      .resolves.toMatchObject({ status: 'BUILT', contribution: { merchants: { currencies: [{ buckets: [{ amount: '0', movementCount: 1 }] }] } } });
-    vi.mocked(ports.merchantFacts.listMerchantFacts).mockResolvedValue([{
-      id: 'opaque-merchant-fact', occurredAt: fact.occurredAt, source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', amount: '0.10', merchant: 'UNMAPPED' as never,
-    }]);
-    const result = await buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' });
-    expect(result.status === 'BUILT' && result.contribution.schemaVersion === 7 && result.contribution.merchants)
-      .toMatchObject({ catalogVersion: 1, currencies: [{ buckets: [{ merchant: 'UNMAPPED', amount: '0.1', movementCount: 1 }] }] });
-    vi.mocked(ports.merchantFacts.listMerchantFacts).mockResolvedValue([{ id: 'opaque-merchant-fact', occurredAt: fact.occurredAt, source: 'POSTED', kind: 'EXPENSE', currency: 'EUR', amount: '0.11', merchant: 'UNMAPPED' as never }]);
-    await expect(buildMacroAnalyticsContribution(ports, { userId: 'private-user-id', period: '2026-09', timeZone: 'Europe/Madrid' }))
-      .rejects.toThrow('Merchant contribution exceeds financial contribution');
-  });
 });

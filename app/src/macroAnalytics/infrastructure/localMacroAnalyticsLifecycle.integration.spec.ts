@@ -4,10 +4,6 @@ import { createAnalyticsPeriod } from '../domain/analyticsPeriod';
 import { createAnalyticsContributionConsent } from '../domain/analyticsContributionConsent';
 import { createFinancialFact } from '../domain/financialFact';
 import { ExactDecimal } from '../../shared/domain/exactDecimal';
-import type { FinancialFact } from '../domain/financialFact';
-import type { CategoryFact } from '../domain/categoryFact';
-import type { RecurringFactSourcePort } from '../application/recurringFactSource.port';
-import type { SharingFactSourcePort } from '../application/sharingFactSource.port';
 import type { AnalyticsMovementFactItem } from '../../analytics/application/analytics.port';
 import type { MacroAnalyticsPublication } from '../domain/macroAnalyticsPublication';
 import { createCohort } from '../domain/cohort';
@@ -26,11 +22,6 @@ import { contributorTagUsageMetricCalculators } from '../application/contributor
 import { cohortTagUsageMetricCalculators } from '../application/cohortTagUsageMetrics';
 import { cohortRecurringMetricCalculators } from '../application/cohortRecurringMetrics';
 import { serializeMacroAnalyticsPublicationV7 } from './MacroAnalyticsPublicationWireV7';
-import { createAnalyticsRecurringFactSource } from './analyticsRecurringFactSource';
-import { createAnalyticsMerchantFactSource } from './analyticsMerchantFactSource';
-import { createCanonicalMerchantResolver } from './canonicalMerchantResolver';
-import { canonicalMerchantCatalog } from './canonicalMerchantCatalog';
-import { createAnalyticsTagUsageFactSource } from './analyticsTagUsageFactSource';
 import { LocalMacroAnalyticsPublicationProcessor } from '../application/LocalMacroAnalyticsPublicationProcessor';
 import { RunMacroAnalyticsMaintenance } from '../application/RunMacroAnalyticsMaintenance';
 import { prepareMacroAnalyticsPublication } from '../application/prepareMacroAnalyticsPublication';
@@ -44,7 +35,7 @@ describe('local Macro Analytics lifecycle integration', () => {
       createFinancialFact({ id: 'private-fact', occurredAt: '2026-01-12T12:00:00Z', source: 'POSTED', kind: 'EXPENSE', amount: '12', currency: 'GBP' }),
       createFinancialFact({ id: 'private-scheduled-fact', occurredAt: '2026-01-13T12:00:00Z', source: 'SCHEDULED', kind: 'EXPENSE', amount: '5', currency: 'GBP' }),
     ];
-    let merchantAmount = '12';
+    const merchantAmount = '12';
     const postedMerchantMovement: AnalyticsMovementFactItem = {
       analyticsFactId: 'posted/private-fact',
       reference: { source: 'posted', transactionId: 'private-transaction' },
@@ -56,7 +47,7 @@ describe('local Macro Analytics lifecycle integration', () => {
       personalAmount: merchantAmount,
       fullAmount: merchantAmount,
       ignored: false,
-      categoryAllocations: [],
+      categoryAllocations: [{ categoryId: '00000000-0000-4000-8000-000000000109', personalAmount: '5', fullAmount: '5' }],
       tagIds: [],
       tags: [{ key: 'tag:private-id', displayName: 'Private Tag Name' }],
       merchant: { key: 'mercadona', displayName: 'Private Merchant Name' },
@@ -73,35 +64,35 @@ describe('local Macro Analytics lifecycle integration', () => {
       personalAmount: '5',
       fullAmount: '5',
       ignored: false,
-      categoryAllocations: [],
+      categoryAllocations: [{ categoryId: '00000000-0000-4000-8000-000000000109', personalAmount: '5', fullAmount: '5' }],
       tagIds: [],
       tags: [],
     };
     const consent = { get: vi.fn(async () => createAnalyticsContributionConsent({ userId, status: 'GRANTED', noticeVersion: 1, decidedAt: '2026-01-01T00:00:00Z' })), save: vi.fn(async () => {}) };
     const profile = { get: vi.fn(async () => ({ birthYear: 1995, sex: 'female' as const, countryCode: 'GB', regionCode: 'GB-ENG' })) };
-    const financialFacts = { listFinancialFacts: vi.fn(async () => facts) };
-    const categoryFacts = { listCategoryFacts: vi.fn(async (): Promise<CategoryFact[]> => (facts as readonly FinancialFact[]).flatMap((fact): CategoryFact[] => {
-      if (fact.kind !== 'EXPENSE' && fact.kind !== 'INCOME') return [];
-      const firstHalf = ExactDecimal.from(String(fact.amount)).ratioTo(ExactDecimal.from(2), 2).toString();
-      const secondHalf = ExactDecimal.from(String(fact.amount)).subtract(ExactDecimal.from(firstHalf)).toString();
-      const category = fact.kind === 'EXPENSE' ? 'GROCERIES' : 'OTHER_INCOME';
-      const unmapped = fact.kind === 'EXPENSE' ? 'UNMAPPED_EXPENSE' : 'UNMAPPED_INCOME';
-      const base = { occurredAt: fact.occurredAt, source: fact.source, currency: fact.currency, kind: fact.kind };
-      return [
-        { ...base, id: `${fact.id}/category/0`, amount: firstHalf, category },
-        { ...base, id: `${fact.id}/category/1`, amount: secondHalf, category: unmapped },
-      ];
-    })) };
-    const recurringFactSource: RecurringFactSourcePort = createAnalyticsRecurringFactSource({ analyticsListMovementFacts: vi.fn(async () => ({ items: [scheduledOccurrence] })) });
-    const sharingFacts: SharingFactSourcePort = { listSharingFacts: vi.fn(async () => []) };
-    const merchantFacts = createAnalyticsMerchantFactSource({ analyticsListMovementFacts: vi.fn(async () => ({ items: [{ ...postedMerchantMovement, personalAmount: merchantAmount, fullAmount: merchantAmount }] })) }, createCanonicalMerchantResolver(canonicalMerchantCatalog));
     const accountBalanceFacts = { listAccountBalanceFacts: vi.fn(async () => []) };
-    const tagUsageFacts = createAnalyticsTagUsageFactSource({
-      analyticsListMovementFacts: vi.fn(async () => ({ items: [
-        { ...postedMerchantMovement, personalAmount: merchantAmount, fullAmount: merchantAmount }, scheduledOccurrence,
-      ] })),
-    });
-    const contributionPorts = { consent, profile, financialFacts, categoryFacts, recurringFacts: recurringFactSource, sharingFacts, merchantFacts, accountBalanceFacts, tagUsageFacts };
+    const snapshot = {
+      readPeriodSnapshot: vi.fn(async ({ period }: { period: ReturnType<typeof createAnalyticsPeriod> }) => ({
+        period,
+        movements: [
+          ...facts.filter((fact) => fact.source !== 'SCHEDULED').map((fact): AnalyticsMovementFactItem => ({
+            ...postedMerchantMovement,
+            analyticsFactId: String(fact.id),
+            effectiveAt: fact.occurredAt,
+            personalAmount: String(fact.amount),
+            fullAmount: String(fact.amount),
+            categoryAllocations: fact.kind === 'EXPENSE' ? [
+              { categoryId: '00000000-0000-4000-8000-000000000102', personalAmount: ExactDecimal.from(String(fact.amount)).ratioTo(ExactDecimal.from(2), 2).toString(), fullAmount: ExactDecimal.from(String(fact.amount)).ratioTo(ExactDecimal.from(2), 2).toString() },
+              { categoryId: 'legacy-unmapped-category', personalAmount: ExactDecimal.from(String(fact.amount)).subtract(ExactDecimal.from(String(fact.amount)).ratioTo(ExactDecimal.from(2), 2)).toString(), fullAmount: ExactDecimal.from(String(fact.amount)).subtract(ExactDecimal.from(String(fact.amount)).ratioTo(ExactDecimal.from(2), 2)).toString() },
+            ] : [],
+            merchant: fact.id === 'private-fact' ? { key: 'mercadona', displayName: 'Private Merchant Name' } : undefined,
+            type: fact.kind === 'INCOME' ? 'income' : 'expense',
+          })),
+          { ...scheduledOccurrence },
+        ],
+      })),
+    };
+    const contributionPorts = { consent, profile, accountBalanceFacts, snapshot, merchantResolver: { resolve: ({ merchantKey }: { merchantKey: string }) => merchantKey === 'mercadona' ? 'MERCADONA' as const : null } };
     const identity = new InMemoryAnalyticsContributorIdentityAdapter();
     const outbox = new InMemoryMacroAnalyticsOutboxAdapter();
     const latest = new Map<string, MacroAnalyticsPublication>();
@@ -157,7 +148,6 @@ describe('local Macro Analytics lifecycle integration', () => {
     expect(JSON.stringify(firstCategoryReport, (_key, value: unknown) => typeof value === 'bigint' ? value.toString() : value)).not.toMatch(/private-fact|stable-contributor|category\/0/);
 
     facts = [createFinancialFact({ ...facts[0], amount: '18' }), facts[1]];
-    merchantAmount = '18';
     await queue.enqueue(userId, period);
     await maintain();
     const current = [...latest.values()][0];
