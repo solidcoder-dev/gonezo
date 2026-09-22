@@ -1,9 +1,9 @@
-import type { FinancialDataChangeObserver } from '../application/financialDataChangeObserver.port';
+import type { MacroAnalyticsInvalidationPort } from '../application/macroAnalyticsInvalidation.port';
 import { analyticsPeriodForInstant } from '../domain/analyticsPeriod';
 import { NativeContributionRebuildQueueAdapter } from './NativeContributionRebuildQueueAdapter';
 import { NativeMacroAnalyticsBackfillStateAdapter } from './NativeMacroAnalyticsBackfillStateAdapter';
 
-export class NativeFinancialDataChangeObserver implements FinancialDataChangeObserver {
+export class NativeMacroAnalyticsInvalidationAdapter implements MacroAnalyticsInvalidationPort {
   private readonly queue = new NativeContributionRebuildQueueAdapter();
   private readonly backfillState = new NativeMacroAnalyticsBackfillStateAdapter();
   private readonly currentUserId: () => Promise<string | null>;
@@ -53,6 +53,8 @@ export class NativeFinancialDataChangeObserver implements FinancialDataChangeObs
     void this.runMaintenance(userId).catch(() => {});
   }
 }
+
+export { NativeMacroAnalyticsInvalidationAdapter as NativeFinancialDataChangeObserver };
 
 export function periodsAffectedByBalanceChange(
   effectiveAt: string,

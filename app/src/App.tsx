@@ -41,7 +41,7 @@ import { NativeContributionRebuildQueueAdapter } from './macroAnalytics/infrastr
 import { NativeMacroAnalyticsBackfillStateAdapter } from './macroAnalytics/infrastructure/NativeMacroAnalyticsBackfillStateAdapter';
 import { withMacroAnalyticsConsentLifecycle } from './macroAnalytics/application/MacroAnalyticsConsentLifecycle';
 import { withMacroAnalyticsProfileRebuild } from './macroAnalytics/infrastructure/AnalyticsProfileRebuildDecorator';
-import { NativeFinancialDataChangeObserver } from './macroAnalytics/infrastructure/NativeFinancialDataChangeObserver';
+import { NativeMacroAnalyticsInvalidationAdapter } from './macroAnalytics/infrastructure/NativeFinancialDataChangeObserver';
 import { MacroAnalyticsMaintenanceLifecycle } from './macroAnalytics/application/MacroAnalyticsMaintenanceLifecycle';
 import { runDefaultMacroAnalyticsMaintenance } from './macroAnalytics/infrastructure/defaultMacroAnalyticsMaintenance';
 
@@ -58,7 +58,7 @@ const defaultAnalyticsProfile: AnalyticsProfilePort = Capacitor.isNativePlatform
   ? new NativeAnalyticsProfileAdapter()
   : new InMemoryAnalyticsProfileAdapter();
 const defaultCore = new CoreAdapter(Capacitor.isNativePlatform()
-  ? new NativeFinancialDataChangeObserver(async () => {
+  ? new NativeMacroAnalyticsInvalidationAdapter(async () => {
     const state = await defaultAuthentication.getAuthenticationState();
     return state.status === 'authenticated' ? state.userId : null;
   }, (userId) => runDefaultMacroAnalyticsMaintenance(userId, defaultAnalyticsProfile))
