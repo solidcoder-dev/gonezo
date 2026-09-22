@@ -116,32 +116,6 @@ function createCore(): AnalyticsPort {
         { periodKey: '2026-06-01T00:00:00.000Z', label: 'Jun 1', amount: '40.00' },
       ],
     })),
-    analyticsGetFlowProjection: vi.fn(async (input) => ({
-      currentWindow: {
-        label: 'Jun 1-Jun 30, 2026',
-        startDate: '2026-06-01T00:00:00.000Z',
-        endDate: '2026-06-30T23:59:59.999Z',
-      },
-      window: {
-        label: 'Jun 1-Jun 30, 2026',
-        periodOffset: input.periodOffset ?? 0,
-        canGoPrevious: true,
-        canGoNext: false,
-      },
-      currentBalanceAmount: '1000.00',
-      expectedEndBalanceAmount: '1100.00',
-      lowestPointAmount: '900.00',
-      lowestPointLabel: 'Jun 6',
-      currentMarkerLabel: 'Jun 6',
-      points: [],
-    })),
-    analyticsGetFlowUpcoming: vi.fn(async () => ({
-      incomeItems: [],
-      expenseItems: [],
-    })),
-    analyticsGetFlowInsights: vi.fn(async () => ({
-      items: [],
-    })),
     analyticsGetSpendingTopExpenses: vi.fn(async () => ({
       currentWindow: {
         label: 'Jun 1-Jun 30, 2026',
@@ -157,6 +131,29 @@ function createCore(): AnalyticsPort {
       categories: [
         { categoryId: 'cat-food', categoryName: 'Food', amount: '250.00', percentage: 100 },
       ],
+    })),
+    analyticsGetSpendingReport: vi.fn(async () => ({
+      window: { start: '2026-06-01', endExclusive: '2026-07-01', selection: { period: { kind: 'thisMonth' as const }, shift: 0 }, canGoPrevious: true, canGoNext: false },
+      currency: 'EUR',
+      totalExpense: { value: '250.00', currency: 'EUR' },
+      timeline: [],
+      categories: [],
+    })),
+    analyticsGetAnalyticsTopExpenses: vi.fn(async () => ({
+      window: { start: '2026-06-01', endExclusive: '2026-07-01', selection: { period: { kind: 'thisMonth' as const }, shift: 0 }, canGoPrevious: true, canGoNext: false },
+      items: [],
+      totalCount: 0,
+    })),
+    analyticsGetFlowReport: vi.fn(async () => ({
+      window: { start: '2026-06-01', endExclusive: '2026-07-01', selection: { period: { kind: 'thisMonth' as const }, shift: 0 }, canGoPrevious: true, canGoNext: false },
+      windowRelation: 'current' as const,
+      projectionMode: 'accountBalance' as const,
+      currency: 'EUR',
+      summary: {
+        openingBalance: { value: '1000.00', currency: 'EUR' }, currentBalance: { value: '1000.00', currency: 'EUR' }, endBalance: { value: '1000.00', currency: 'EUR' }, netFlow: { value: '0.00', currency: 'EUR' },
+        lowestBalance: { amount: { value: '1000.00', currency: 'EUR' }, occurredAt: '2026-06-01T00:00:00.000Z' }, highestBalance: { amount: { value: '1000.00', currency: 'EUR' }, occurredAt: '2026-06-01T00:00:00.000Z' },
+      },
+      projection: [], upcoming: { incomingTotal: { value: '0.00', currency: 'EUR' }, outgoingTotal: { value: '0.00', currency: 'EUR' }, incomingCount: 0, outgoingCount: 0 }, insights: [],
     })),
     analyticsSetMovementIgnored: vi.fn(),
     analyticsListIgnoredMovements: vi.fn(async () => ({ movementIds: [] })),

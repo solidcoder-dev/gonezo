@@ -432,31 +432,28 @@ function makeCore(transactionCount = 0): AppTestPort {
       totalExpenseAmount: '0.00',
       categories: [],
     })),
-    analyticsGetFlowProjection: vi.fn(async () => ({
-      currentWindow: {
-        label: 'Jun 1-Jun 30, 2026',
-        startDate: '2026-06-01T00:00:00.000Z',
-        endDate: '2026-06-30T23:59:59.999Z',
-      },
-      window: {
-        label: 'Jun 1-Jun 30, 2026',
-        periodOffset: 0,
-        canGoPrevious: true,
-        canGoNext: false,
-      },
-      currentBalanceAmount: '0.00',
-      expectedEndBalanceAmount: '0.00',
-      lowestPointAmount: '0.00',
-      lowestPointLabel: 'Jun 1',
-      currentMarkerLabel: 'Jun 1',
-      points: [],
+    analyticsGetSpendingReport: vi.fn(async () => ({
+      window: { start: '2026-06-01', endExclusive: '2026-07-01', selection: { period: { kind: 'thisMonth' as const }, shift: 0 }, canGoPrevious: true, canGoNext: false },
+      currency: 'EUR',
+      totalExpense: { value: '0.00', currency: 'EUR' },
+      timeline: [],
+      categories: [],
     })),
-    analyticsGetFlowUpcoming: vi.fn(async () => ({
-      incomeItems: [],
-      expenseItems: [],
-    })),
-    analyticsGetFlowInsights: vi.fn(async () => ({
+    analyticsGetAnalyticsTopExpenses: vi.fn(async () => ({
+      window: { start: '2026-06-01', endExclusive: '2026-07-01', selection: { period: { kind: 'thisMonth' as const }, shift: 0 }, canGoPrevious: true, canGoNext: false },
       items: [],
+      totalCount: 0,
+    })),
+    analyticsGetFlowReport: vi.fn(async () => ({
+      window: { start: '2026-06-01', endExclusive: '2026-07-01', selection: { period: { kind: 'thisMonth' as const }, shift: 0 }, canGoPrevious: true, canGoNext: false },
+      windowRelation: 'current' as const,
+      projectionMode: 'accountBalance' as const,
+      currency: 'EUR',
+      summary: {
+        openingBalance: { value: '0.00', currency: 'EUR' }, endBalance: { value: '0.00', currency: 'EUR' }, netFlow: { value: '0.00', currency: 'EUR' },
+        lowestBalance: { amount: { value: '0.00', currency: 'EUR' }, occurredAt: '2026-06-01T00:00:00.000Z' }, highestBalance: { amount: { value: '0.00', currency: 'EUR' }, occurredAt: '2026-06-01T00:00:00.000Z' },
+      },
+      projection: [], upcoming: { incomingTotal: { value: '0.00', currency: 'EUR' }, outgoingTotal: { value: '0.00', currency: 'EUR' }, incomingCount: 0, outgoingCount: 0 }, insights: [],
     })),
     analyticsSetMovementIgnored: vi.fn(async () => undefined),
     analyticsListIgnoredMovements: vi.fn(async () => ({ movementIds: [] })),

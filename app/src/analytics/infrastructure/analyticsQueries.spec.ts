@@ -12,8 +12,6 @@ import {
   analyticsGetCashFlowSeries,
   analyticsQueryMetrics,
   analyticsGetFilterFacets,
-  analyticsGetFlowInsights,
-  analyticsGetFlowProjection,
   analyticsGetFlowReport,
   analyticsGetOverviewInsights,
   analyticsGetOverviewSnapshot,
@@ -268,17 +266,6 @@ describe('analytics queries', () => {
         netFlowAmount: '75.00',
       },
     });
-    await expect(analyticsGetFlowProjection(port, {
-      currency: 'EUR',
-      periodOffset: 0,
-    })).resolves.toMatchObject({
-      currentBalanceAmount: '1000.00',
-    });
-    await expect(analyticsGetFlowInsights(port, {
-      currency: 'EUR',
-    })).resolves.toEqual({
-      items: expect.any(Array),
-    });
   });
 
   it('includes ignored movements when the filter enables them', async () => {
@@ -317,38 +304,6 @@ describe('analytics queries', () => {
       totalExpenseAmount: '35.00',
       categories: [{ categoryId: 'cat-food', categoryName: 'Food', amount: '35.00', percentage: 100 }],
     });
-    await expect(analyticsGetFlowProjection(port, {
-      currency: 'EUR',
-      periodOffset: 0,
-      filters,
-    })).resolves.toMatchObject({
-      currentBalanceAmount: '1000.00',
-    });
-  });
-
-  it('passes selected scheduled movements into the flow projection', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-06-17T12:00:00.000Z'));
-    const port = createPort([], undefined, [{
-      id: 'scheduled-income',
-      type: 'income',
-      sourceAccountId: 'acc-1',
-      amount: '100.00',
-      currency: 'EUR',
-      status: 'active',
-      startAt: '2026-06-20T10:00:00.000Z',
-      nextDueAt: '2026-06-20T10:00:00.000Z',
-      zoneId: 'UTC',
-      generatedOccurrences: 0,
-      splitItems: [],
-      rule: { frequency: 'monthly' },
-      recurrenceEnd: { kind: 'never' },
-    }]);
-
-    await expect(analyticsGetFlowProjection(port, { currency: 'EUR', periodOffset: 0 })).resolves.toMatchObject({
-      expectedEndBalanceAmount: '1100.00',
-    });
-    expect(port.schedulingListMovements).toHaveBeenCalledWith({ sourceAccountId: 'acc-1' });
   });
 
   it('counts only the personal share by default across overview, spending and flow analytics while preserving balances', async () => {
@@ -396,17 +351,6 @@ describe('analytics queries', () => {
     })).resolves.toMatchObject({
       totalExpenseAmount: '40.00',
       categories: [{ categoryId: 'cat-food', amount: '40.00' }],
-    });
-    await expect(analyticsGetFlowInsights(port, {
-      currency: 'EUR',
-    })).resolves.toMatchObject({
-      items: expect.any(Array),
-    });
-    await expect(analyticsGetFlowProjection(port, {
-      currency: 'EUR',
-      periodOffset: 0,
-    })).resolves.toMatchObject({
-      currentBalanceAmount: '1000.00',
     });
   });
 

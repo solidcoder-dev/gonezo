@@ -62,13 +62,13 @@ export function AnalyticsDashboardComponent({ required, provided }: AnalyticsDas
       () => setState((current) => ({ ...current, insightsLoading: false })),
     );
     load(
-      () => core.analyticsGetSpendingReport ? core.analyticsGetSpendingReport({ ...input, periodSelection }) : Promise.resolve(undefined),
-      (spending) => setState((current) => ({ ...current, spending: spending ? presentSpendingSummary(spending) : undefined })),
+      () => core.analyticsGetSpendingReport({ ...input, periodSelection }),
+      (spending) => setState((current) => ({ ...current, spending: presentSpendingSummary(spending) })),
       () => setState((current) => ({ ...current, spendingLoading: false })),
     );
     load(
-      () => core.analyticsGetFlowReport ? core.analyticsGetFlowReport({ ...input, periodSelection }) : Promise.resolve(undefined),
-      (flow) => setState((current) => ({ ...current, flow: flow ? presentFlowReport(flow) : undefined })),
+      () => core.analyticsGetFlowReport({ ...input, periodSelection }),
+      (flow) => setState((current) => ({ ...current, flow: presentFlowReport(flow) })),
       () => setState((current) => ({ ...current, forecastLoading: false })),
     );
     return () => { active = false; };
