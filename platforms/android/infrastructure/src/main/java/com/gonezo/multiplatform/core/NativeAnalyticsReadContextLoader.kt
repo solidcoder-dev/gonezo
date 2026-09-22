@@ -12,7 +12,6 @@ import com.gonezo.sharing.domain.RecurringSharePlan
 import com.gonezo.sharing.domain.ports.MovementShareRepository
 import com.gonezo.sharing.domain.ports.PlannedMovementShareRepository
 import com.gonezo.sharing.domain.ports.RecurringSharePlanRepository
-import com.gonezo.taxonomy.domain.Tag
 import com.gonezo.taxonomy.domain.TagName
 import java.math.BigDecimal
 import java.time.Instant
@@ -24,7 +23,6 @@ internal data class NativeAnalyticsReadContext(
   val occurrencesById: Map<java.util.UUID, RecurringMovementOccurrence>,
   val occurrencesByTransactionId: Map<String, RecurringMovementOccurrence>,
   val occurrencesBySeriesAndDueAt: Map<Pair<RecurringMovementId, Instant>, RecurringMovementOccurrence>,
-  val taxonomyTags: List<Tag>,
   val tagDisplayNamesById: Map<String, String>,
   val tagIdsByNormalizedName: Map<String, String>,
   val sharesByTransaction: Map<String, MovementShare>,
@@ -43,9 +41,12 @@ internal class NativeAnalyticsReadContextLoader(
   private val plannedShares: PlannedMovementShareRepository = AndroidPlannedMovementShareRepository(database)
   private val recurringSharePlans: RecurringSharePlanRepository = AndroidRecurringSharePlanRepository(database)
 
-  fun load(): NativeAnalyticsReadContext {
-    val accounts = ledger.listAccounts()
-    val recurringMovements = recurring.listAll()
+  fun load(accountIds: Set<String>, includePlannedMovements: Boolean): NativeAnalyticsReadContext {
+    val accounts = ledger.listAccounts().let { allAccounts ->
+      if (accountIds.isEmpty()) allAccounts else allAccounts.filter { it.id in accountIds }
+    }
+    val scopedAccountIds = accounts.mapTo(hashSetOf()) { it.id }
+    val recurringMovements = recurring.listAll().filter { it.sourceAccountId.toString() in scopedAccountIds }
     val occurrenceItems = occurrences.listAll()
     val taxonomyTags = AndroidTaxonomyTagRepository(database).listAll()
     return NativeAnalyticsReadContext(
@@ -55,12 +56,11 @@ internal class NativeAnalyticsReadContextLoader(
       occurrencesById = occurrenceItems.associateBy { it.id },
       occurrencesByTransactionId = occurrenceItems.mapNotNull { occurrence -> occurrence.ledgerTransactionId?.let { it to occurrence } }.toMap(),
       occurrencesBySeriesAndDueAt = occurrenceItems.associateBy { it.recurringMovementId to it.dueAt },
-      taxonomyTags = taxonomyTags,
       tagDisplayNamesById = taxonomyTags.associate { it.id.toString() to it.name },
       tagIdsByNormalizedName = taxonomyTags.associate { TagName.normalizeTagName(it.name) to it.id.toString() },
       sharesByTransaction = movementShares.listAll().associateBy { it.sourceTransactionId },
-      plannedSharesByExpected = plannedShares.listAll().associateBy { it.expectedMovementRef.value },
-      sharingPlansByRecurring = recurringSharePlans.listAll().associateBy { it.recurringMovementRef.value },
+      plannedSharesByExpected = if (includePlannedMovements) plannedShares.listAll().associateBy { it.expectedMovementRef.value } else emptyMap(),
+      sharingPlansByRecurring = if (includePlannedMovements) recurringSharePlans.listAll().associateBy { it.recurringMovementRef.value } else emptyMap(),
     )
   }
 
