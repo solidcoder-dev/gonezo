@@ -38,7 +38,7 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
 
   fun query(fromInclusive: Instant, toExclusive: Instant, includePlannedMovements: Boolean, includeIgnoredMovements: Boolean, currency: String?, accountIds: Set<String> = emptySet(), categoryId: String? = null, tagIds: Set<String> = emptySet()): AnalyticsMovementReadResult {
     val window = AnalyticsMovementReadWindow(fromInclusive, toExclusive)
-    val readContext = readContextLoader.load()
+    val readContext = readContextLoader.load(accountIds, includePlannedMovements)
     val result = AnalyticsMovementFactQuery(
       postedReader = object : AnalyticsPostedMovementReader {
         override fun read(window: AnalyticsMovementReadWindow): Iterable<AnalyticsPostedMovement> = posted(window, readContext)
@@ -75,9 +75,7 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
 
   private fun posted(window: AnalyticsMovementReadWindow, readContext: NativeAnalyticsReadContext): List<AnalyticsPostedMovement> {
     val transactions = readContext.accounts.flatMap { account ->
-      ledger.listTransactionsHalfOpen(
-        account.id, 100, window.fromInclusive.toString(), window.toExclusive.toString(), null, null, true,
-      ).filter { it.status.equals("posted", true) }
+      ledger.listAllTransactionsHalfOpen(account.id, window.fromInclusive.toString(), window.toExclusive.toString())
     }
     val transactionIds = transactions.map { it.id }
     val tagIdsByTransaction = readContextLoader.tagIdsByTransaction(transactionIds)

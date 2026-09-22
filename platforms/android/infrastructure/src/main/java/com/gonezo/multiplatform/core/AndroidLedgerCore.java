@@ -434,6 +434,37 @@ public final class AndroidLedgerCore {
     return listTransactions(accountId, limit, fromDate, toDate, categoryId, merchant, includeVoided, true);
   }
 
+  public List<LedgerTransactionView> listAllTransactionsHalfOpen(
+    String accountId,
+    String fromDate,
+    String toDate
+  ) {
+    LedgerTransactionFilterInput filters = new LedgerTransactionFilterInput(
+      null,
+      null,
+      null,
+      blankToNull(fromDate),
+      blankToNull(toDate),
+      List.of("posted"),
+      null
+    );
+    List<LedgerTransactionView> transactions = new java.util.ArrayList<>();
+    int page = 0;
+    LedgerTransactionPageView result;
+    do {
+      result = listTransactions(
+        accountId,
+        filters,
+        new LedgerPageRequestInput(page, 100),
+        List.of(new LedgerTransactionSortInput("occurredAt", "desc")),
+        true
+      );
+      transactions.addAll(result.content());
+      page += 1;
+    } while (result.hasNext());
+    return List.copyOf(transactions);
+  }
+
   private List<LedgerTransactionView> listTransactions(
     String accountId,
     Integer limit,
