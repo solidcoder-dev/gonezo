@@ -8,9 +8,7 @@ import type {
 import type { AnalyticsSharedAmountMode } from '../application/analyticsFilters';
 import type { SharingListMovementDetailsInput, SharingListMovementDetailsResult } from '../../sharing/application/sharing.port';
 import type { AnalyticsListMovementFactsResult } from '../application/analytics.port';
-import type { AnalyticsSubscriptionCandidateStatus } from '../application/analytics.port';
 import { resolveSharingAnalyticsAttribution } from '../../sharing/application/sharingAnalyticsAttribution';
-import { classifySubscriptionCandidate } from '../domain/subscriptionCandidateClassifier';
 import { analyticsMerchantReference } from '../domain/analyticsMerchantReference';
 import { resolveAnalyticsTagReferences } from '../domain/analyticsTagReference';
 import { normalizeTagName } from '../../taxonomy/application/tagNameNormalization';
@@ -43,7 +41,6 @@ export type AnalyticsTransactionReadModel = LedgerTransactionListItem & {
   sharing?: AnalyticsListMovementFactsResult['items'][number]['sharing'];
   merchantReference?: AnalyticsListMovementFactsResult['items'][number]['merchant'];
   analyticsTags?: AnalyticsListMovementFactsResult['items'][number]['tags'];
-  subscriptionCandidateStatus?: AnalyticsSubscriptionCandidateStatus;
 };
 
 export type AnalyticsMovementReadModel = {
@@ -156,7 +153,6 @@ export async function listAnalyticsMovements(
     return {
       accounts: scopedAccounts,
       transactions: selected.map((movement) => {
-        const subscriptionCandidateStatus = classifySubscriptionCandidate(movement)?.status;
         return {
           id: movement.reference.source === 'posted' ? movement.reference.transactionId : movement.analyticsFactId,
           analyticsFactId: movement.analyticsFactId,
@@ -179,7 +175,6 @@ export async function listAnalyticsMovements(
           analyticsAmount: scope.sharedAmountMode === 'full' ? movement.fullAmount : movement.personalAmount,
           analyticsPersonalAmount: movement.personalAmount,
           analyticsFullAmount: movement.fullAmount,
-          ...(subscriptionCandidateStatus === undefined ? {} : { subscriptionCandidateStatus }),
         };
       }),
     };

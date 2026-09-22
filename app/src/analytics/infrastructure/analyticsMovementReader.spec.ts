@@ -27,7 +27,6 @@ describe('analytics movement bridge contract', () => {
     }, { filters: {} });
 
     expect(native.transactions[0].merchantReference).toEqual({ key: 'el nino', displayName: 'El Niño' });
-    expect(native.transactions[0].subscriptionCandidateStatus).toBe('CANDIDATE');
     expect(web.transactions[0].merchantReference).toEqual(native.transactions[0].merchantReference);
   });
 

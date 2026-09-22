@@ -81,10 +81,7 @@ export type AnalyticsMovementFactItem = {
   tagIds: string[];
   tags: readonly AnalyticsTagReference[];
   merchant?: AnalyticsMerchantReference;
-  subscriptionCandidateStatus?: AnalyticsSubscriptionCandidateStatus;
 };
-
-export type AnalyticsSubscriptionCandidateStatus = 'CANDIDATE' | 'NOT_CANDIDATE' | 'UNKNOWN';
 
 export type AnalyticsMerchantReference = Readonly<{ key: string; displayName: string }>;
 
