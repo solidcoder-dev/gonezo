@@ -2,8 +2,15 @@ import type { MacroAnalyticsInvalidationEffect } from './macroAnalyticsInvalidat
 
 export const MacroAnalyticsInvalidationPolicy = Object.freeze({
   none(): MacroAnalyticsInvalidationEffect { return { kind: 'NONE' }; },
-  currentPeriod(): MacroAnalyticsInvalidationEffect { return { kind: 'CURRENT_PERIOD' }; },
-  exactPeriod(effectiveAt: string): MacroAnalyticsInvalidationEffect { return { kind: 'EXACT_PERIOD', effectiveAt }; },
-  periodAndFollowing(effectiveAt: string): MacroAnalyticsInvalidationEffect { return { kind: 'PERIOD_AND_FOLLOWING', effectiveAt }; },
-  allPeriods(): MacroAnalyticsInvalidationEffect { return { kind: 'ALL_PERIODS' }; },
+  accountOpened(effectiveAt: string): MacroAnalyticsInvalidationEffect { return { kind: 'PERIOD_AND_FOLLOWING', effectiveAt }; },
+  accountDeleted(): MacroAnalyticsInvalidationEffect { return { kind: 'ALL_PERIODS' }; },
+  postedMovementChanged(effectiveAt: string): MacroAnalyticsInvalidationEffect { return { kind: 'PERIOD_AND_FOLLOWING', effectiveAt }; },
+  postedMovementStructureChanged(): MacroAnalyticsInvalidationEffect { return { kind: 'ALL_PERIODS' }; },
+  recurringPlanChanged(): MacroAnalyticsInvalidationEffect { return { kind: 'CURRENT_PERIOD' }; },
+  expectedCreated(effectiveAt: string): MacroAnalyticsInvalidationEffect { return { kind: 'EXACT_PERIOD', effectiveAt }; },
+  expectedChanged(): MacroAnalyticsInvalidationEffect { return { kind: 'ALL_PERIODS' }; },
+  sharingChanged(): MacroAnalyticsInvalidationEffect { return { kind: 'ALL_PERIODS' }; },
+  tagAssignmentChanged(): MacroAnalyticsInvalidationEffect { return { kind: 'ALL_PERIODS' }; },
+  importCompleted(): MacroAnalyticsInvalidationEffect { return { kind: 'ALL_PERIODS' }; },
+  currentPeriodChanged(): MacroAnalyticsInvalidationEffect { return { kind: 'CURRENT_PERIOD' }; },
 });

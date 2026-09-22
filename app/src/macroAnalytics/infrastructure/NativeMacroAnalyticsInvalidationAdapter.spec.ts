@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { periodsAffectedByBalanceChange } from './NativeFinancialDataChangeObserver';
+import { periodsAffectedByBalanceChange } from './NativeMacroAnalyticsInvalidationAdapter';
 
 describe('periodsAffectedByBalanceChange', () => {
   it('includes the changed month and every later month through the current period', () => {

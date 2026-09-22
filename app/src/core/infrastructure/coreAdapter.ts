@@ -12,7 +12,8 @@ import {
 } from './coreRuntimeAdapters';
 import { CoreAdapterWeb } from './coreAdapterWeb';
 import { isNativeRuntime } from './runtimeAdapterSupport';
-import type { FinancialDataChangeObserver } from '../../macroAnalytics/application/financialDataChangeObserver.port';
+import { MacroAnalyticsInvalidationPolicy } from '../../macroAnalytics/application/macroAnalyticsInvalidationPolicy';
+import type { MacroAnalyticsInvalidationPort } from '../../macroAnalytics/application/macroAnalyticsInvalidation.port';
 
 export class CoreAdapter implements CorePort {
   private readonly web: CoreAdapterWeb = new CoreAdapterWeb();
@@ -25,15 +26,10 @@ export class CoreAdapter implements CorePort {
   private readonly scheduling: SchedulingRuntimeAdapter = new SchedulingRuntimeAdapter(this.web);
   private readonly expected: ExpectedRuntimeAdapter = new ExpectedRuntimeAdapter(this.web);
   private readonly movements: MovementsRuntimeAdapter = new MovementsRuntimeAdapter(this.web, this);
-  private readonly financialChanges: FinancialDataChangeObserver;
+  private readonly invalidation: MacroAnalyticsInvalidationPort;
 
-  constructor(financialChanges?: FinancialDataChangeObserver) {
-    this.financialChanges = financialChanges ?? {
-      periodChanged: async () => {},
-      periodAndFollowingChanged: async () => {},
-      currentPeriodChanged: async () => {},
-      allPeriodsChanged: async () => {},
-    };
+  constructor(invalidation?: MacroAnalyticsInvalidationPort) {
+    this.invalidation = invalidation ?? { invalidate: async () => {} };
   }
 
   preferencesGet = this.preferences.preferencesGet.bind(this.preferences);
@@ -44,40 +40,40 @@ export class CoreAdapter implements CorePort {
   ledgerOpenAccount(input: Parameters<LedgerRuntimeAdapter['ledgerOpenAccount']>[0]) {
     return this.afterMutation(
       () => this.ledger.ledgerOpenAccount(input),
-      () => this.financialChanges.periodAndFollowingChanged(input.createdAt ?? new Date().toISOString()),
+      MacroAnalyticsInvalidationPolicy.accountOpened(input.createdAt ?? new Date().toISOString()),
     );
   }
   ledgerListSupportedCurrencies = this.ledger.ledgerListSupportedCurrencies.bind(this.ledger);
   ledgerRenameAccount = this.ledger.ledgerRenameAccount.bind(this.ledger);
   ledgerArchiveAccount = this.ledger.ledgerArchiveAccount.bind(this.ledger);
   ledgerRestoreAccount = this.ledger.ledgerRestoreAccount.bind(this.ledger);
-  ledgerDeleteAccount(input: Parameters<LedgerRuntimeAdapter['ledgerDeleteAccount']>[0]) { return this.afterMutation(() => this.ledger.ledgerDeleteAccount(input), () => this.financialChanges.allPeriodsChanged()); }
+  ledgerDeleteAccount(input: Parameters<LedgerRuntimeAdapter['ledgerDeleteAccount']>[0]) { return this.afterMutation(() => this.ledger.ledgerDeleteAccount(input), MacroAnalyticsInvalidationPolicy.accountDeleted()); }
   ledgerListAccounts = this.ledger.ledgerListAccounts.bind(this.ledger);
   ledgerGetAccountSummary = this.ledger.ledgerGetAccountSummary.bind(this.ledger);
   ledgerGetNetWorthByCurrency = this.ledger.ledgerGetNetWorthByCurrency.bind(this.ledger);
   ledgerGetCashFlowSeries = this.ledger.ledgerGetCashFlowSeries.bind(this.ledger);
   ledgerRecordExpense(input: Parameters<LedgerRuntimeAdapter['ledgerRecordExpense']>[0]) {
-    return this.afterMutation(() => this.ledger.ledgerRecordExpense(input), () => this.financialChanges.periodAndFollowingChanged(input.occurredAt));
+    return this.afterMutation(() => this.ledger.ledgerRecordExpense(input), MacroAnalyticsInvalidationPolicy.postedMovementChanged(input.occurredAt));
   }
   ledgerRecordIncome(input: Parameters<LedgerRuntimeAdapter['ledgerRecordIncome']>[0]) {
-    return this.afterMutation(() => this.ledger.ledgerRecordIncome(input), () => this.financialChanges.periodAndFollowingChanged(input.occurredAt));
+    return this.afterMutation(() => this.ledger.ledgerRecordIncome(input), MacroAnalyticsInvalidationPolicy.postedMovementChanged(input.occurredAt));
   }
   ledgerRecordTransfer(input: Parameters<LedgerRuntimeAdapter['ledgerRecordTransfer']>[0]) {
-    return this.afterMutation(() => this.ledger.ledgerRecordTransfer(input), () => this.financialChanges.periodAndFollowingChanged(input.occurredAt));
+    return this.afterMutation(() => this.ledger.ledgerRecordTransfer(input), MacroAnalyticsInvalidationPolicy.postedMovementChanged(input.occurredAt));
   }
   ledgerRecordTransferFx(input: Parameters<LedgerRuntimeAdapter['ledgerRecordTransferFx']>[0]) {
-    return this.afterMutation(() => this.ledger.ledgerRecordTransferFx(input), () => this.financialChanges.periodAndFollowingChanged(input.occurredAt));
+    return this.afterMutation(() => this.ledger.ledgerRecordTransferFx(input), MacroAnalyticsInvalidationPolicy.postedMovementChanged(input.occurredAt));
   }
   ledgerCreateExpenseDraft = this.ledger.ledgerCreateExpenseDraft.bind(this.ledger);
   ledgerAddTransactionItem = this.ledger.ledgerAddTransactionItem.bind(this.ledger);
   ledgerReplacePostedTransactionItems(input: Parameters<LedgerRuntimeAdapter['ledgerReplacePostedTransactionItems']>[0]) {
-    return this.afterMutation(() => this.ledger.ledgerReplacePostedTransactionItems(input), () => this.financialChanges.allPeriodsChanged());
+    return this.afterMutation(() => this.ledger.ledgerReplacePostedTransactionItems(input), MacroAnalyticsInvalidationPolicy.postedMovementStructureChanged());
   }
   ledgerPostDraftTransaction(input: Parameters<LedgerRuntimeAdapter['ledgerPostDraftTransaction']>[0]) {
-    return this.afterMutation(() => this.ledger.ledgerPostDraftTransaction(input), () => this.financialChanges.allPeriodsChanged());
+    return this.afterMutation(() => this.ledger.ledgerPostDraftTransaction(input), MacroAnalyticsInvalidationPolicy.postedMovementStructureChanged());
   }
   ledgerVoidTransaction(input: Parameters<LedgerRuntimeAdapter['ledgerVoidTransaction']>[0]) {
-    return this.afterMutation(() => this.ledger.ledgerVoidTransaction(input), () => this.financialChanges.allPeriodsChanged());
+    return this.afterMutation(() => this.ledger.ledgerVoidTransaction(input), MacroAnalyticsInvalidationPolicy.postedMovementStructureChanged());
   }
   ledgerListTransactions = this.ledger.ledgerListTransactions.bind(this.ledger);
 
@@ -96,7 +92,7 @@ export class CoreAdapter implements CorePort {
   analyticsGetSpendingOverview = this.analytics.analyticsGetSpendingOverview.bind(this.analytics);
   analyticsGetFlowReport = this.analytics.analyticsGetFlowReport.bind(this.analytics);
   analyticsSetMovementIgnored(input: Parameters<AnalyticsRuntimeAdapter['analyticsSetMovementIgnored']>[0]) {
-    return this.afterMutation(() => this.analytics.analyticsSetMovementIgnored(input), () => this.financialChanges.allPeriodsChanged());
+    return this.afterMutation(() => this.analytics.analyticsSetMovementIgnored(input), MacroAnalyticsInvalidationPolicy.postedMovementStructureChanged());
   }
   analyticsListIgnoredMovements = this.analytics.analyticsListIgnoredMovements.bind(this.analytics);
   analyticsListMovementFacts = this.analytics.analyticsListMovementFacts.bind(this.analytics);
@@ -105,13 +101,13 @@ export class CoreAdapter implements CorePort {
 
   sharingListPeople = this.sharing.sharingListPeople.bind(this.sharing); sharingListGroupSuggestions = this.sharing.sharingListGroupSuggestions.bind(this.sharing); sharingRenamePerson = this.sharing.sharingRenamePerson.bind(this.sharing);
   sharingApplyShareToPostedMovement(input: Parameters<SharingRuntimeAdapter['sharingApplyShareToPostedMovement']>[0]) {
-    return this.afterMutation(() => this.sharing.sharingApplyShareToPostedMovement(input), () => this.financialChanges.allPeriodsChanged());
+    return this.afterMutation(() => this.sharing.sharingApplyShareToPostedMovement(input), MacroAnalyticsInvalidationPolicy.sharingChanged());
   }
   sharingReplaceMovementShare(input: Parameters<SharingRuntimeAdapter['sharingReplaceMovementShare']>[0]) {
-    return this.afterMutation(() => this.sharing.sharingReplaceMovementShare(input), () => this.financialChanges.allPeriodsChanged());
+    return this.afterMutation(() => this.sharing.sharingReplaceMovementShare(input), MacroAnalyticsInvalidationPolicy.sharingChanged());
   }
   sharingRemoveMovementShare(input: Parameters<SharingRuntimeAdapter['sharingRemoveMovementShare']>[0]) {
-    return this.afterMutation(() => this.sharing.sharingRemoveMovementShare(input), () => this.financialChanges.allPeriodsChanged());
+    return this.afterMutation(() => this.sharing.sharingRemoveMovementShare(input), MacroAnalyticsInvalidationPolicy.sharingChanged());
   }
   sharingGetMovementDetails = this.sharing.sharingGetMovementDetails.bind(this.sharing);
   sharingListMovementDetails = this.sharing.sharingListMovementDetails.bind(this.sharing);
@@ -125,41 +121,41 @@ export class CoreAdapter implements CorePort {
   orchestrationCategorizeTransaction = this.taxonomy.orchestrationCategorizeTransaction.bind(this.taxonomy);
   orchestrationApplyTransactionTags(input: Parameters<TaxonomyRuntimeAdapter['orchestrationApplyTransactionTags']>[0]) {
     return this.taxonomy.orchestrationApplyTransactionTags(input).then(async (result) => {
-      if (result.status !== 'failed') await this.financialChanges.allPeriodsChanged().catch(() => undefined);
+      if (result.status !== 'failed') await this.invalidation.invalidate(MacroAnalyticsInvalidationPolicy.tagAssignmentChanged()).catch(() => undefined);
       return result;
     });
   }
   orchestrationApplyTransactionItemTags = this.taxonomy.orchestrationApplyTransactionItemTags.bind(this.taxonomy);
   orchestrationListTransactionTaxonomy = this.taxonomy.orchestrationListTransactionTaxonomy.bind(this.taxonomy);
 
-  mobillsImport(input: Parameters<ImportsRuntimeAdapter['mobillsImport']>[0]) { return this.afterMutation(() => this.imports.mobillsImport(input), () => this.financialChanges.allPeriodsChanged()); }
+  mobillsImport(input: Parameters<ImportsRuntimeAdapter['mobillsImport']>[0]) { return this.afterMutation(() => this.imports.mobillsImport(input), MacroAnalyticsInvalidationPolicy.importCompleted()); }
   movementsExportBackup = this.imports.movementsExportBackup.bind(this.imports);
-  movementsImportBackup(input: Parameters<ImportsRuntimeAdapter['movementsImportBackup']>[0]) { return this.afterMutation(() => this.imports.movementsImportBackup(input), () => this.financialChanges.allPeriodsChanged()); }
+  movementsImportBackup(input: Parameters<ImportsRuntimeAdapter['movementsImportBackup']>[0]) { return this.afterMutation(() => this.imports.movementsImportBackup(input), MacroAnalyticsInvalidationPolicy.importCompleted()); }
   applicationExportBackup = this.imports.applicationExportBackup.bind(this.imports);
-  applicationImportBackup(input: Parameters<ImportsRuntimeAdapter['applicationImportBackup']>[0]) { return this.afterMutation(() => this.imports.applicationImportBackup(input), () => this.financialChanges.allPeriodsChanged()); }
+  applicationImportBackup(input: Parameters<ImportsRuntimeAdapter['applicationImportBackup']>[0]) { return this.afterMutation(() => this.imports.applicationImportBackup(input), MacroAnalyticsInvalidationPolicy.importCompleted()); }
 
-  recurrenceCreateRecurringMovement(input: Parameters<SchedulingRuntimeAdapter['recurrenceCreateRecurringMovement']>[0]) { return this.afterMutation(() => this.scheduling.recurrenceCreateRecurringMovement(input), () => this.financialChanges.currentPeriodChanged()); }
-  recurrenceDeactivateRecurringMovement(input: Parameters<SchedulingRuntimeAdapter['recurrenceDeactivateRecurringMovement']>[0]) { return this.afterMutation(() => this.scheduling.recurrenceDeactivateRecurringMovement(input), () => this.financialChanges.currentPeriodChanged()); }
+  recurrenceCreateRecurringMovement(input: Parameters<SchedulingRuntimeAdapter['recurrenceCreateRecurringMovement']>[0]) { return this.afterMutation(() => this.scheduling.recurrenceCreateRecurringMovement(input), MacroAnalyticsInvalidationPolicy.recurringPlanChanged()); }
+  recurrenceDeactivateRecurringMovement(input: Parameters<SchedulingRuntimeAdapter['recurrenceDeactivateRecurringMovement']>[0]) { return this.afterMutation(() => this.scheduling.recurrenceDeactivateRecurringMovement(input), MacroAnalyticsInvalidationPolicy.recurringPlanChanged()); }
   recurrenceListRecurringMovements = this.scheduling.recurrenceListRecurringMovements.bind(this.scheduling);
-  schedulingCreateMovement(input: Parameters<SchedulingRuntimeAdapter['schedulingCreateMovement']>[0]) { return this.afterMutation(() => this.scheduling.schedulingCreateMovement(input), () => this.financialChanges.currentPeriodChanged()); }
-  schedulingUpdateMovement(input: Parameters<SchedulingRuntimeAdapter['schedulingUpdateMovement']>[0]) { return this.afterMutation(() => this.scheduling.schedulingUpdateMovement(input), () => this.financialChanges.currentPeriodChanged()); }
-  schedulingDeactivateMovement(input: Parameters<SchedulingRuntimeAdapter['schedulingDeactivateMovement']>[0]) { return this.afterMutation(() => this.scheduling.schedulingDeactivateMovement(input), () => this.financialChanges.currentPeriodChanged()); }
+  schedulingCreateMovement(input: Parameters<SchedulingRuntimeAdapter['schedulingCreateMovement']>[0]) { return this.afterMutation(() => this.scheduling.schedulingCreateMovement(input), MacroAnalyticsInvalidationPolicy.recurringPlanChanged()); }
+  schedulingUpdateMovement(input: Parameters<SchedulingRuntimeAdapter['schedulingUpdateMovement']>[0]) { return this.afterMutation(() => this.scheduling.schedulingUpdateMovement(input), MacroAnalyticsInvalidationPolicy.recurringPlanChanged()); }
+  schedulingDeactivateMovement(input: Parameters<SchedulingRuntimeAdapter['schedulingDeactivateMovement']>[0]) { return this.afterMutation(() => this.scheduling.schedulingDeactivateMovement(input), MacroAnalyticsInvalidationPolicy.recurringPlanChanged()); }
   schedulingListMovements = this.scheduling.schedulingListMovements.bind(this.scheduling);
   schedulingGetMovement = this.scheduling.schedulingGetMovement.bind(this.scheduling);
   movementsGetDetail = this.movements.movementsGetDetail.bind(this.movements);
   movementReuseSearchGroups = this.movements.movementReuseSearchGroups.bind(this.movements);
   movementReuseListVariants = this.movements.movementReuseListVariants.bind(this.movements);
   movementReuseGetTemplate = this.movements.movementReuseGetTemplate.bind(this.movements);
-  schedulingProcessDueMovements(input?: Parameters<SchedulingRuntimeAdapter['schedulingProcessDueMovements']>[0]) { return this.afterMutation(() => this.scheduling.schedulingProcessDueMovements(input), () => this.financialChanges.currentPeriodChanged()); }
+  schedulingProcessDueMovements(input?: Parameters<SchedulingRuntimeAdapter['schedulingProcessDueMovements']>[0]) { return this.afterMutation(() => this.scheduling.schedulingProcessDueMovements(input), MacroAnalyticsInvalidationPolicy.currentPeriodChanged()); }
 
-  expectedCreateMovement(input: Parameters<ExpectedRuntimeAdapter['expectedCreateMovement']>[0]) { return this.afterMutation(() => this.expected.expectedCreateMovement(input), () => this.financialChanges.periodChanged(input.expectedAt)); }
-  expectedUpdateMovement(input: Parameters<ExpectedRuntimeAdapter['expectedUpdateMovement']>[0]) { return this.afterMutation(() => this.expected.expectedUpdateMovement(input), () => this.financialChanges.allPeriodsChanged()); }
+  expectedCreateMovement(input: Parameters<ExpectedRuntimeAdapter['expectedCreateMovement']>[0]) { return this.afterMutation(() => this.expected.expectedCreateMovement(input), MacroAnalyticsInvalidationPolicy.expectedCreated(input.expectedAt)); }
+  expectedUpdateMovement(input: Parameters<ExpectedRuntimeAdapter['expectedUpdateMovement']>[0]) { return this.afterMutation(() => this.expected.expectedUpdateMovement(input), MacroAnalyticsInvalidationPolicy.expectedChanged()); }
   expectedListMovements = this.expected.expectedListMovements.bind(this.expected);
   expectedGetPendingOverview = this.expected.expectedGetPendingOverview.bind(this.expected);
-  expectedResolveMovement(input: Parameters<ExpectedRuntimeAdapter['expectedResolveMovement']>[0]) { return this.afterMutation(() => this.expected.expectedResolveMovement(input), () => this.financialChanges.allPeriodsChanged()); }
+  expectedResolveMovement(input: Parameters<ExpectedRuntimeAdapter['expectedResolveMovement']>[0]) { return this.afterMutation(() => this.expected.expectedResolveMovement(input), MacroAnalyticsInvalidationPolicy.expectedChanged()); }
   expectedPostMovement = isNativeRuntime() ? (input: Parameters<NonNullable<ExpectedRuntimeAdapter['expectedPostMovement']>>[0]) =>
-    this.afterMutation(() => this.expected.expectedPostMovement!(input), () => this.financialChanges.allPeriodsChanged()) : undefined;
-  expectedDismissMovement(input: Parameters<ExpectedRuntimeAdapter['expectedDismissMovement']>[0]) { return this.afterMutation(() => this.expected.expectedDismissMovement(input), () => this.financialChanges.allPeriodsChanged()); }
+    this.afterMutation(() => this.expected.expectedPostMovement!(input), MacroAnalyticsInvalidationPolicy.expectedChanged()) : undefined;
+  expectedDismissMovement(input: Parameters<ExpectedRuntimeAdapter['expectedDismissMovement']>[0]) { return this.afterMutation(() => this.expected.expectedDismissMovement(input), MacroAnalyticsInvalidationPolicy.expectedChanged()); }
 
   movementsGetMonthOverview = this.movements.movementsGetMonthOverview.bind(this.movements);
   movementsSearch = this.movements.movementsSearch.bind(this.movements);
@@ -167,9 +163,9 @@ export class CoreAdapter implements CorePort {
   movementsGetOverview = this.movements.movementsGetOverview.bind(this.movements);
   movementsListScheduled = this.movements.movementsListScheduled.bind(this.movements);
 
-  private async afterMutation<T>(operation: () => Promise<T>, invalidate: () => Promise<void>): Promise<T> {
+  private async afterMutation<T>(operation: () => Promise<T>, effect: Parameters<MacroAnalyticsInvalidationPort['invalidate']>[0]): Promise<T> {
     const result = await operation();
-    await invalidate().catch(() => undefined);
+    await this.invalidation.invalidate(effect).catch(() => undefined);
     return result;
   }
 }

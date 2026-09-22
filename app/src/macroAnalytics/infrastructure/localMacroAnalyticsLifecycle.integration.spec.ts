@@ -26,6 +26,7 @@ import { LocalMacroAnalyticsPublicationProcessor } from '../application/LocalMac
 import { RunMacroAnalyticsMaintenance } from '../application/RunMacroAnalyticsMaintenance';
 import { prepareMacroAnalyticsPublication } from '../application/prepareMacroAnalyticsPublication';
 import { InMemoryAnalyticsContributorIdentityAdapter, InMemoryMacroAnalyticsOutboxAdapter, InMemoryContributionRebuildQueueAdapter, InMemoryMacroAnalyticsBackfillStateAdapter } from './InMemoryMacroAnalyticsAdapters';
+import { createMacroMerchantCode } from '../domain/macroMerchantCode';
 
 describe('local Macro Analytics lifecycle integration', () => {
   it('rebuilds a dirty period through publication processing and exposes new report values', async () => {
@@ -92,7 +93,7 @@ describe('local Macro Analytics lifecycle integration', () => {
         ],
       })),
     };
-    const contributionPorts = { consent, profile, accountBalanceFacts, snapshot, merchantResolver: { resolve: ({ merchantKey }: { merchantKey: string }) => merchantKey === 'mercadona' ? 'MERCADONA' as const : null } };
+    const contributionPorts = { consent, profile, accountBalanceFacts, snapshot, merchantResolver: { resolve: ({ merchantKey }: { merchantKey: string }) => merchantKey === 'mercadona' ? createMacroMerchantCode('MERCADONA') : null } };
     const identity = new InMemoryAnalyticsContributorIdentityAdapter();
     const outbox = new InMemoryMacroAnalyticsOutboxAdapter();
     const latest = new Map<string, MacroAnalyticsPublication>();

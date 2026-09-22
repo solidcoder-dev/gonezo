@@ -1,6 +1,6 @@
 import { buildCashFlowSeries } from '../../ledger/application/cashFlowSeries';
 import { balanceImpact } from '../../ledger/application/movementSemantics';
-import type { LedgerGetCashFlowSeriesResult } from '../../ledger/application/ledger.port';
+import type { LedgerGetAccountSummaryResult, LedgerGetCashFlowSeriesResult } from '../../ledger/application/ledger.port';
 import type { SchedulingMovementItem } from '../../scheduling/application/scheduling.port';
 import {
   buildAnalyticsCashFlowSummary,
@@ -82,7 +82,7 @@ import type {
   AnalyticsFlowReportInput,
   AnalyticsFlowReport,
 } from '../application/analytics.port';
-import { normalizeAnalyticsFilters, type AnalyticsFilters, type AnalyticsFiltersInput } from '../application/analyticsFilters';
+import { type AnalyticsFilters } from '../application/analyticsFilters';
 import { listAnalyticsMovements, type AnalyticsTransactionReadModel } from './analyticsMovementReader';
 import {
   type AnalyticsQueryPort,

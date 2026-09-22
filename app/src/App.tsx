@@ -41,7 +41,7 @@ import { NativeContributionRebuildQueueAdapter } from './macroAnalytics/infrastr
 import { NativeMacroAnalyticsBackfillStateAdapter } from './macroAnalytics/infrastructure/NativeMacroAnalyticsBackfillStateAdapter';
 import { withMacroAnalyticsConsentLifecycle } from './macroAnalytics/application/MacroAnalyticsConsentLifecycle';
 import { withMacroAnalyticsProfileRebuild } from './macroAnalytics/infrastructure/AnalyticsProfileRebuildDecorator';
-import { NativeMacroAnalyticsInvalidationAdapter } from './macroAnalytics/infrastructure/NativeFinancialDataChangeObserver';
+import { NativeMacroAnalyticsInvalidationAdapter } from './macroAnalytics/infrastructure/NativeMacroAnalyticsInvalidationAdapter';
 import { MacroAnalyticsMaintenanceLifecycle } from './macroAnalytics/application/MacroAnalyticsMaintenanceLifecycle';
 import { runDefaultMacroAnalyticsMaintenance } from './macroAnalytics/infrastructure/defaultMacroAnalyticsMaintenance';
 

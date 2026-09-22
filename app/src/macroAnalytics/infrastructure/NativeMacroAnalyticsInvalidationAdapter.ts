@@ -1,4 +1,4 @@
-import type { MacroAnalyticsInvalidationPort } from '../application/macroAnalyticsInvalidation.port';
+import type { MacroAnalyticsInvalidationEffect, MacroAnalyticsInvalidationPort } from '../application/macroAnalyticsInvalidation.port';
 import { analyticsPeriodForInstant } from '../domain/analyticsPeriod';
 import { NativeContributionRebuildQueueAdapter } from './NativeContributionRebuildQueueAdapter';
 import { NativeMacroAnalyticsBackfillStateAdapter } from './NativeMacroAnalyticsBackfillStateAdapter';
@@ -17,35 +17,27 @@ export class NativeMacroAnalyticsInvalidationAdapter implements MacroAnalyticsIn
     this.runMaintenance = runMaintenance;
   }
 
-  async periodChanged(effectiveAt: string): Promise<void> {
-    const userId = await this.currentUserId();
-    if (!userId) return;
-    await this.queue.enqueue(userId, analyticsPeriodForInstant(effectiveAt, Intl.DateTimeFormat().resolvedOptions().timeZone));
-    this.scheduleMaintenance(userId);
-  }
-
-  async periodAndFollowingChanged(effectiveAt: string): Promise<void> {
+  async invalidate(effect: MacroAnalyticsInvalidationEffect): Promise<void> {
     const userId = await this.currentUserId();
     if (!userId) return;
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    for (const period of periodsAffectedByBalanceChange(effectiveAt, new Date().toISOString(), timeZone)) {
-      await this.queue.enqueue(userId, period);
+    switch (effect.kind) {
+      case 'NONE': return;
+      case 'EXACT_PERIOD':
+        await this.queue.enqueue(userId, analyticsPeriodForInstant(effect.effectiveAt, timeZone));
+        break;
+      case 'PERIOD_AND_FOLLOWING':
+        for (const period of periodsAffectedByBalanceChange(effect.effectiveAt, new Date().toISOString(), timeZone)) {
+          await this.queue.enqueue(userId, period);
+        }
+        break;
+      case 'CURRENT_PERIOD':
+        await this.queue.enqueue(userId, analyticsPeriodForInstant(new Date().toISOString(), timeZone));
+        break;
+      case 'ALL_PERIODS':
+        await this.backfillState.requestFullRebuild(userId);
+        break;
     }
-    this.scheduleMaintenance(userId);
-  }
-
-  async currentPeriodChanged(): Promise<void> {
-    const userId = await this.currentUserId();
-    if (!userId) return;
-    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    await this.queue.enqueue(userId, analyticsPeriodForInstant(new Date().toISOString(), timeZone));
-    this.scheduleMaintenance(userId);
-  }
-
-  async allPeriodsChanged(): Promise<void> {
-    const userId = await this.currentUserId();
-    if (!userId) return;
-    await this.backfillState.requestFullRebuild(userId);
     this.scheduleMaintenance(userId);
   }
 
@@ -53,8 +45,6 @@ export class NativeMacroAnalyticsInvalidationAdapter implements MacroAnalyticsIn
     void this.runMaintenance(userId).catch(() => {});
   }
 }
-
-export { NativeMacroAnalyticsInvalidationAdapter as NativeFinancialDataChangeObserver };
 
 export function periodsAffectedByBalanceChange(
   effectiveAt: string,

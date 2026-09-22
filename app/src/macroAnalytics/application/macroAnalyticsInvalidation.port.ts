@@ -1,8 +1,5 @@
 export type MacroAnalyticsInvalidationPort = Readonly<{
-  periodChanged(effectiveAt: string): Promise<void>;
-  periodAndFollowingChanged(effectiveAt: string): Promise<void>;
-  currentPeriodChanged(): Promise<void>;
-  allPeriodsChanged(): Promise<void>;
+  invalidate(effect: MacroAnalyticsInvalidationEffect): Promise<void>;
 }>;
 
 export type MacroAnalyticsInvalidationEffect =
