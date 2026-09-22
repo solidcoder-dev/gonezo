@@ -7,7 +7,7 @@ import type {
 } from '../../ledger/application/ledger.port';
 import type { AnalyticsSharedAmountMode } from '../application/analyticsFilters';
 import type { SharingListMovementDetailsInput, SharingListMovementDetailsResult } from '../../sharing/application/sharing.port';
-import type { AnalyticsListMovementFactsResult } from '../application/analytics.port';
+import type { AnalyticsListMovementFactsResult } from '../application/analyticsMovementFacts.contract';
 import { resolveSharingAnalyticsAttribution } from '../../sharing/application/sharingAnalyticsAttribution';
 import { analyticsMerchantReference } from '../domain/analyticsMerchantReference';
 import { resolveAnalyticsTagReferences } from '../domain/analyticsTagReference';

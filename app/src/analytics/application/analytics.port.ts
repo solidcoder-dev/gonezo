@@ -10,29 +10,12 @@ import type { AnalyticsPeriodSelection } from './analyticsPeriodSelection';
 import type { AnalyticsFlowReport } from './analyticsFlowReport';
 import type { MetricId } from '../../shared/domain/analyticsMetric';
 import type { UserMetricResult } from '../domain/userMetricResult';
-import type { AnalyticsTagReference } from '../domain/analyticsTagReference';
-import type { LedgerAccountType } from '../../ledger/application/ledger.port';
-
-export type AnalyticsAccountBalanceSnapshotInput = {
-  asOfLocalDateExclusive: string;
-  zoneId: string;
-  currency?: string;
-};
-
-export type AnalyticsAccountBalanceSnapshotItem = {
-  accountId: string;
-  accountType: LedgerAccountType;
-  currency: string;
-  balanceAmount: string;
-};
-
-export type AnalyticsAccountBalanceSnapshotResult = {
-  asOfLocalDateExclusive: string;
-  zoneId: string;
-  items: readonly AnalyticsAccountBalanceSnapshotItem[];
-};
-
-export type AnalyticsAccountBalanceCoverageResult = { firstAccountLocalDate?: string };
+export type {
+  AnalyticsAccountBalanceCoverageResult,
+  AnalyticsAccountBalanceSnapshotInput,
+  AnalyticsAccountBalanceSnapshotItem,
+  AnalyticsAccountBalanceSnapshotResult,
+} from './analyticsBalance.contract';
 
 export type AnalyticsCurrencyScopeInput = {
   currency: string;
@@ -48,69 +31,16 @@ export type AnalyticsQueryMetricsResult = {
   items: readonly UserMetricResult[];
 };
 
-export type AnalyticsListMovementFactsInput = {
-  fromLocalDate: string;
-  toLocalDate: string;
-  zoneId: string;
-  currency?: string;
-  includePlannedMovements?: boolean;
-  includeIgnoredMovements?: boolean;
-  accountIds?: string[];
-  categoryId?: string;
-  tagIds?: string[];
-};
-
-export type AnalyticsMovementFactItem = {
-  analyticsFactId: string;
-  reference:
-    | { source: 'posted'; transactionId: string }
-    | { source: 'expected'; expectedMovementId: string; recurringMovementId?: string; occurrenceId?: string }
-    | { source: 'scheduledProjection'; recurringMovementId: string; occurrenceId: string };
-  source: 'POSTED' | 'EXPECTED' | 'SCHEDULED_PROJECTION';
-  schedulingOrigin?: AnalyticsSchedulingOrigin;
-  effectiveAt: string;
-  accountId: string;
-  type: 'income' | 'expense' | 'transfer_in' | 'transfer_out';
-  currency: string;
-  personalAmount: string;
-  fullAmount: string;
-  sharing?: AnalyticsSharingSummary;
-  ignored: boolean;
-  categoryId?: string;
-  categoryAllocations: readonly AnalyticsCategoryAllocation[];
-  tagIds: string[];
-  tags: readonly AnalyticsTagReference[];
-  merchant?: AnalyticsMerchantReference;
-};
-
-export type AnalyticsMerchantReference = Readonly<{ key: string; displayName: string }>;
-
-export type AnalyticsSharingSummary = Readonly<{
-  participantCount: number;
-  settlementParticipantCount: number;
-  participantAllocatedAmount: string;
-  settlementRequiredAmount: string;
-}>;
-
-export type AnalyticsSchedulingOrigin = Readonly<{
-  kind: 'recurring' | 'one_shot';
-  recurringMovementId: string;
-  occurrenceId?: string;
-  cadence?: AnalyticsRecurrenceCadence;
-}>;
-
-export type AnalyticsRecurrenceCadence = Readonly<{
-  frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
-  interval: number;
-}>;
-
-export type AnalyticsCategoryAllocation = Readonly<{
-  categoryId?: string;
-  personalAmount: string;
-  fullAmount: string;
-}>;
-
-export type AnalyticsListMovementFactsResult = { items: AnalyticsMovementFactItem[] };
+export type {
+  AnalyticsCategoryAllocation,
+  AnalyticsListMovementFactsInput,
+  AnalyticsListMovementFactsResult,
+  AnalyticsMerchantReference,
+  AnalyticsMovementFactItem,
+  AnalyticsRecurrenceCadence,
+  AnalyticsSchedulingOrigin,
+  AnalyticsSharingSummary,
+} from './analyticsMovementFacts.contract';
 
 export type AnalyticsCashFlowSeriesInput = AnalyticsCurrencyScopeInput & {
   granularity: LedgerCashFlowGranularity;
@@ -344,12 +274,11 @@ import type {
   AnalyticsExclusionsPort,
   AnalyticsFlowPort,
   AnalyticsMetricsPort,
-  AnalyticsMovementFactsPort,
   AnalyticsOverviewPort,
   AnalyticsSpendingPort,
 } from './analytics.capabilities';
 
-export type AnalyticsPort = AnalyticsMovementFactsPort & AnalyticsBalancePort & AnalyticsMetricsPort & AnalyticsSpendingPort & AnalyticsFlowPort & AnalyticsOverviewPort & AnalyticsExclusionsPort;
+export type AnalyticsPort = AnalyticsBalancePort & AnalyticsMetricsPort & AnalyticsSpendingPort & AnalyticsFlowPort & AnalyticsOverviewPort & AnalyticsExclusionsPort;
 
 export type AnalyticsSpendingReportInput = AnalyticsCurrencyScopeInput & {
   periodSelection: AnalyticsPeriodSelection;

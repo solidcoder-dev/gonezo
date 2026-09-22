@@ -2,6 +2,11 @@ import type {
   AnalyticsAccountBalanceCoverageResult,
   AnalyticsAccountBalanceSnapshotInput,
   AnalyticsAccountBalanceSnapshotResult,
+} from './analyticsBalance.contract';
+import type {
+  AnalyticsMovementFactsPort as MovementFactsContract,
+} from './analyticsMovementFacts.contract';
+import type {
   AnalyticsCashFlowSeriesInput,
   AnalyticsCashFlowSummaryResult,
   AnalyticsCurrencyScopeInput,
@@ -15,8 +20,6 @@ import type {
   AnalyticsGetFilterFacetsInput,
   AnalyticsListCurrenciesResult,
   AnalyticsListIgnoredMovementsResult,
-  AnalyticsListMovementFactsInput,
-  AnalyticsListMovementFactsResult,
   AnalyticsOverviewInsightsResult,
   AnalyticsOverviewInsightsInput,
   AnalyticsOverviewSnapshotInput,
@@ -40,9 +43,7 @@ import type {
 import type { AnalyticsGetFilterFacetsResult, AnalyticsFlowInsightsInput } from './analytics.port';
 import type { LedgerGetCashFlowSeriesResult } from '../../ledger/application/ledger.port';
 
-export type AnalyticsMovementFactsPort = {
-  analyticsListMovementFacts?: (input: AnalyticsListMovementFactsInput) => Promise<AnalyticsListMovementFactsResult>;
-};
+export type AnalyticsMovementFactsPort = MovementFactsContract;
 
 export type AnalyticsBalancePort = Readonly<{
   analyticsGetAccountBalanceSnapshot(input: AnalyticsAccountBalanceSnapshotInput): Promise<AnalyticsAccountBalanceSnapshotResult>;
