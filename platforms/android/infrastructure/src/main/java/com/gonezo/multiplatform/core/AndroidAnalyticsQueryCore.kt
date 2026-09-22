@@ -101,7 +101,7 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
       recurringMovements = recurring.listAll(),
       occurrences = occurrences,
       occurrencesByTransactionId = occurrences.mapNotNull { occurrence -> occurrence.ledgerTransactionId?.let { it to occurrence } }.toMap(),
-      occurrencesBySeriesAndDueAt = occurrences.associateBy { it.recurringMovementId.toString() to it.dueAt },
+      occurrencesBySeriesAndDueAt = occurrences.associateBy { it.recurringMovementId to it.dueAt },
       taxonomyTags = taxonomyTags,
       tagDisplayNamesById = taxonomyTags.associate { it.id.toString() to it.name },
       tagIdsByNormalizedName = taxonomyTags.associate { com.gonezo.taxonomy.domain.TagName.normalizeTagName(it.name) to it.id.toString() },
