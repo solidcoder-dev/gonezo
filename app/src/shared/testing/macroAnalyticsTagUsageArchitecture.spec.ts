@@ -15,7 +15,7 @@ describe('Macro Analytics tag usage boundary', () => {
     const adapter = readFileSync(resolve('src/macroAnalytics/infrastructure/analyticsTagUsageFactAdapter.ts'), 'utf8');
     const analyticsImports = [...adapter.matchAll(/from ['"]([^'"]*analytics\/[^'"]*)['"]/gu)].map((match) => match[1]);
 
-    expect(analyticsImports).toEqual(['../../analytics/application/analytics.port']);
+    expect(analyticsImports).toEqual(['../../analytics/application/analyticsMovementFacts.contract']);
   });
 
   it('keeps V7 publication fields limited to anonymous tag usage counts', () => {
