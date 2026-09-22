@@ -9,8 +9,6 @@ import type { AnalyticsContributionConsentPort } from './analyticsContributionCo
 import type { ContributionProfileSourcePort } from './contributionProfileSource.port';
 import type { FinancialFact } from '../domain/financialFact';
 import type { CategoryFact } from '../domain/categoryFact';
-import type { RecurringFact } from '../domain/recurringFact';
-import type { SharingFact } from '../domain/sharingFact';
 import type { AnalyticsContributorIdentityPort } from './analyticsContributorIdentity.port';
 import type { MacroAnalyticsOutboxPort } from './macroAnalyticsOutbox.port';
 import type { LatestMacroAnalyticsPublicationPort } from './latestMacroAnalyticsPublication.port';
@@ -21,8 +19,6 @@ import type { ContributionFactSetSourcePort } from './contributionFactSetSource.
 type FactQuery = Readonly<{ period: ReturnType<typeof createAnalyticsPeriod>; timeZone: string; currency?: string }>;
 type FinancialFactSource = Readonly<{ listFinancialFacts(query: FactQuery): Promise<readonly FinancialFact[]> }>;
 type CategoryFactSource = Readonly<{ listCategoryFacts(query: FactQuery): Promise<readonly CategoryFact[]> }>;
-type RecurringFactSource = Readonly<{ listRecurringFacts(query: FactQuery): Promise<readonly RecurringFact[]> }>;
-type SharingFactSource = Readonly<{ listSharingFacts(query: FactQuery): Promise<readonly SharingFact[]> }>;
 
 const profile: ContributionProfile = { birthYear: 1995, sex: 'female', countryCode: 'ES', regionCode: 'ES-CN' };
 const facts = [createFinancialFact({ id: 'private-fact-id', occurredAt: '2026-09-04T10:00:00Z', source: 'POSTED', kind: 'EXPENSE', amount: '12', currency: 'EUR' })];
@@ -84,9 +80,6 @@ function setup(options: { consent?: 'GRANTED' | 'DECLINED' | 'WITHDRAWN' | null;
   const profileSource: ContributionProfileSourcePort = { get: vi.fn(async () => options.profile === undefined ? profile : options.profile) };
   const financialFacts: FinancialFactSource = { listFinancialFacts: vi.fn(async () => options.facts ?? facts) };
   const categoryFacts: CategoryFactSource = { listCategoryFacts: vi.fn(async () => categoriesFor(options.facts ?? facts)) };
-  const recurringFacts: RecurringFactSource = { listRecurringFacts: vi.fn(async () => []) };
-  const sharingFacts: SharingFactSource = { listSharingFacts: vi.fn(async () => []) };
-  const merchantFacts = { listMerchantFacts: vi.fn(async () => []) };
   const accountBalanceFacts = { listAccountBalanceFacts: vi.fn(async () => []) };
   const tagUsageFacts = { listTagUsageFacts: vi.fn(async () => (await financialFacts.listFinancialFacts({ period: createAnalyticsPeriod('2026-09'), timeZone: 'UTC' })).map((item) => createTagUsageFact({
     id: `${item.id}/tag-usage`, occurredAt: item.occurredAt, source: item.source, kind: item.kind as 'INCOME' | 'EXPENSE',

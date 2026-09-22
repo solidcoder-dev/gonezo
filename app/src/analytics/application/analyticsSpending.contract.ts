@@ -1,5 +1,6 @@
 import type { LedgerCashFlowGranularity } from '../../ledger/application/ledger.port';
-import type { AnalyticsCurrencyScopeInput, AnalyticsOverviewHighlight, AnalyticsOverviewWindow, AnalyticsPeriodWindow } from './analyticsCommon.contract';
+import type { AnalyticsCurrencyScopeInput, AnalyticsPeriodWindow } from './analyticsCommon.contract';
+import type { AnalyticsOverviewHighlight, AnalyticsOverviewWindow } from './analyticsOverview.contract';
 import type { AnalyticsPeriodSelection } from './analyticsPeriodSelection';
 import type { AnalyticsCategoryReference, AnalyticsSpendingMovement, AnalyticsSpendingPeriodWindow, AnalyticsSpendingReport } from './spendingReport';
 
