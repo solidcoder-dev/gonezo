@@ -1,18 +1,7 @@
 import { buildCashFlowSeries } from '../../ledger/application/cashFlowSeries';
 import { balanceImpact } from '../../ledger/application/movementSemantics';
-import type {
-  LedgerAccountItem,
-  LedgerTransactionFilterInput,
-  LedgerGetAccountSummaryResult,
-  LedgerGetCashFlowSeriesResult,
-} from '../../ledger/application/ledger.port';
-import type { UserPreferencesResult } from '../../account/application/preferences.port';
-import type {
-  OrchestrationListTransactionTaxonomyResult,
-  TaxonomyListCategoriesResult,
-  TaxonomyListTagsResult,
-} from '../../taxonomy/application/taxonomy.port';
-import type { SchedulingListMovementsResult, SchedulingMovementItem } from '../../scheduling/application/scheduling.port';
+import type { LedgerGetCashFlowSeriesResult } from '../../ledger/application/ledger.port';
+import type { SchedulingMovementItem } from '../../scheduling/application/scheduling.port';
 import {
   buildAnalyticsCashFlowSummary,
   buildFlowInsights,
@@ -93,12 +82,15 @@ import type {
   AnalyticsFlowReportInput,
   AnalyticsFlowReport,
 } from '../application/analytics.port';
+import { normalizeAnalyticsFilters, type AnalyticsFilters, type AnalyticsFiltersInput } from '../application/analyticsFilters';
+import { listAnalyticsMovements, type AnalyticsTransactionReadModel } from './analyticsMovementReader';
 import {
-  normalizeAnalyticsFilters,
-  type AnalyticsFilters,
-  type AnalyticsFiltersInput,
-} from '../application/analyticsFilters';
-import { listAnalyticsMovements, type AnalyticsMovementReaderPort, type AnalyticsTransactionReadModel } from './analyticsMovementReader';
+  type AnalyticsQueryPort,
+  listScopedAnalyticsMovements,
+  resolveAnalyticsQueryScope,
+  analyticsTransactionFilters,
+} from './analyticsQueryScope';
+export type { AnalyticsQueryPort } from './analyticsQueryScope';
 import { analyticsGetOverviewRecurringInsight } from './overviewRecurringInsightQuery';
 import { analyticsGetOverviewSharingInsights } from './overviewSharingInsightsQuery';
 import { createAnalyticsQueryContext } from '../application/analyticsQueryContext';
@@ -108,16 +100,6 @@ import { userMetricCalculators } from '../application/metrics/financialMetricCal
 import { isAnalyticsCashFlowTransaction } from '../application/analyticsMovementEligibility';
 
 const calculateUserMetrics = new CalculateUserMetrics(userMetricCalculators);
-
-export type AnalyticsQueryPort = AnalyticsMovementReaderPort & {
-  ledgerGetAccountSummary(input: { accountId: string }): Promise<LedgerGetAccountSummaryResult>;
-  preferencesGet(): Promise<UserPreferencesResult>;
-  taxonomyListCategories(input?: { appliesTo?: 'income' | 'expense'; includeArchived?: boolean }): Promise<TaxonomyListCategoriesResult>;
-  analyticsListCategories?: () => Promise<{ items: AnalyticsCategoryReference[] }>;
-  taxonomyListTags(input?: { includeArchived?: boolean }): Promise<TaxonomyListTagsResult>;
-  orchestrationListTransactionTaxonomy(input: { transactionIds: string[] }): Promise<OrchestrationListTransactionTaxonomyResult>;
-  schedulingListMovements(input: { sourceAccountId: string }): Promise<SchedulingListMovementsResult>;
-};
 
 async function listAnalyticsCategoryReferences(port: AnalyticsQueryPort): Promise<AnalyticsCategoryReference[]> {
   if (port.analyticsListCategories) {
@@ -235,33 +217,6 @@ async function listSpendingMovements(
   return { movements: result.transactions.map(spendingMovement), transactions: result.transactions };
 }
 
-type AnalyticsQueryScope = {
-  filters: AnalyticsFilters;
-  compatibleAccounts: LedgerAccountItem[];
-  selectedAccountIds: string[];
-};
-
-function postedTransactionIds(transactions: Array<{ id: string; reference?: { source: string; transactionId?: string } }>): string[] {
-  return transactions
-    .filter((transaction) => transaction.reference?.source === 'posted')
-    .map((transaction) => transaction.reference?.transactionId)
-    .filter((id): id is string => Boolean(id));
-}
-
-function dateFilterValue(date: Date): string {
-  return date.toISOString();
-}
-
-function analyticsWindowDateRange(window: { start: Date; end: Date } | undefined): Pick<LedgerTransactionFilterInput, 'fromDate' | 'toDateExclusive'> {
-  if (!window) {
-    return {};
-  }
-  return {
-    fromDate: dateFilterValue(window.start),
-    toDateExclusive: dateFilterValue(window.end),
-  };
-}
-
 function earliestTransactionDate(transactions: Array<{ occurredAt: string }>): Date | undefined {
   return transactions.reduce<Date | undefined>((earliest, transaction) => {
     const occurredAt = new Date(transaction.occurredAt);
@@ -272,110 +227,11 @@ function earliestTransactionDate(transactions: Array<{ occurredAt: string }>): D
   }, undefined);
 }
 
-function assertSupportedAnalyticsCurrency(accounts: LedgerAccountItem[], currency: string): void {
-  if (!currency) {
-    return;
-  }
-  const supportedCurrencies = new Set(accounts.map((account) => account.currency.trim().toUpperCase()));
-  if (!supportedCurrencies.has(currency)) {
-    throw new Error(`unsupported currency code: ${currency}`);
-  }
-}
-
-function compatibleAnalyticsAccounts(accounts: LedgerAccountItem[], currency: string): LedgerAccountItem[] {
-  if (!currency) {
-    return [...accounts];
-  }
-  return accounts.filter((account) => account.currency.trim().toUpperCase() === currency);
-}
-
-function resolveSelectedAnalyticsAccounts(accounts: LedgerAccountItem[], filters: AnalyticsFilters): LedgerAccountItem[] {
-  const compatibleAccounts = compatibleAnalyticsAccounts(accounts, filters.currency);
-  if (filters.accountIds.length === 0) {
-    return compatibleAccounts;
-  }
-
-  const accountsById = new Map(accounts.map((account) => [account.id, account]));
-  return filters.accountIds.map((accountId) => {
-    const account = accountsById.get(accountId);
-    if (!account) {
-      throw new Error(`Account not found: ${accountId}`);
-    }
-    if (filters.currency && account.currency.trim().toUpperCase() !== filters.currency) {
-      throw new Error(`Analytics account currency must match selected currency (${filters.currency})`);
-    }
-    return account;
-  });
-}
-
-function assertValidAnalyticsTagIds(
-  tags: Awaited<ReturnType<AnalyticsQueryPort['taxonomyListTags']>>['items'],
-  selectedTagIds: string[],
-): void {
-  if (selectedTagIds.length === 0) {
-    return;
-  }
-
-  const availableTagIds = new Set(tags.map((tag) => tag.id));
-  for (const tagId of selectedTagIds) {
-    if (!availableTagIds.has(tagId)) {
-      throw new Error(`Tag not found: ${tagId}`);
-    }
-  }
-}
-
-async function resolveAnalyticsQueryScope(
-  port: AnalyticsQueryPort,
-  input: AnalyticsFiltersInput | undefined,
-): Promise<AnalyticsQueryScope> {
-  const filters = normalizeAnalyticsFilters(input);
-  const [accounts, tags] = await Promise.all([
-    port.ledgerListAccounts(),
-    filters.tagIds.length > 0
-      ? port.taxonomyListTags({ includeArchived: false })
-      : Promise.resolve({ items: [] }),
-  ]);
-
-  assertSupportedAnalyticsCurrency(accounts.items, filters.currency);
-  assertValidAnalyticsTagIds(tags.items, filters.tagIds);
-
-  const compatibleAccounts = compatibleAnalyticsAccounts(accounts.items, filters.currency);
-  const selectedAccounts = resolveSelectedAnalyticsAccounts(accounts.items, filters);
-
-  return {
-    filters,
-    compatibleAccounts,
-    selectedAccountIds: selectedAccounts.map((account) => account.id),
-  };
-}
-
-function analyticsTransactionFilters(
-  scope: AnalyticsFilters,
-  window: { start: Date; end: Date } | undefined,
-  includeTags: boolean,
-): LedgerTransactionFilterInput & { currency: string; includePlannedMovements: boolean } {
-  return {
-    statuses: ['posted'],
-    tagIds: includeTags && scope.tagIds.length > 0 ? scope.tagIds : undefined,
-    ...analyticsWindowDateRange(window),
-    currency: scope.currency,
-    includePlannedMovements: scope.includePlannedMovements,
-  };
-}
-
-async function listScopedAnalyticsMovements(
-  port: AnalyticsQueryPort,
-  input: AnalyticsFiltersInput | AnalyticsFilters | undefined,
-  window: { start: Date; end: Date } | undefined,
-  includeTags = true,
-) {
-  const scope = await resolveAnalyticsQueryScope(port, input);
-  return listAnalyticsMovements(port, {
-    accountIds: scope.selectedAccountIds,
-    filters: analyticsTransactionFilters(scope.filters, window, includeTags),
-    includeIgnoredMovements: scope.filters.includeIgnoredMovements,
-    sharedAmountMode: scope.filters.sharedAmountMode,
-  });
+function postedTransactionIds(transactions: Array<{ id: string; reference?: { source: string; transactionId?: string } }>): string[] {
+  return transactions
+    .filter((transaction) => transaction.reference?.source === 'posted')
+    .map((transaction) => transaction.reference?.transactionId)
+    .filter((id): id is string => Boolean(id));
 }
 
 export async function analyticsListCurrencies(port: AnalyticsQueryPort): Promise<AnalyticsListCurrenciesResult> {
