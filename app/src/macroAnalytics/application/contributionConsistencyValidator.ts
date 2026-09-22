@@ -12,6 +12,11 @@ type ContributionSlices = Readonly<{
   tagUsage: TagUsageContribution;
 }>;
 
+type ReconciliationBucket = Readonly<{
+  source: FinancialFactSource;
+  kind: FinancialFactKind;
+}>;
+
 function assertCategoryTotalsReconcile(financial: ContributionSlices['financial'], categories: ContributionSlices['categories']): void {
   const totals = (currencies: ContributionSlices['categories']['currencies']) => {
     const result = new Map<string, ExactDecimal>();
@@ -29,9 +34,9 @@ function assertCategoryTotalsReconcile(financial: ContributionSlices['financial'
   }
 }
 
-function assertSliceDoesNotExceedFinancial(financial: FinancialContribution, currencies: readonly { currency: string; buckets: readonly { source: FinancialFactSource; kind: FinancialFactKind; amount?: string; personalAmount?: string }[] }[], amount: (bucket: { amount?: string; personalAmount?: string }) => string, label: string): void {
+function assertSliceDoesNotExceedFinancial<Bucket extends ReconciliationBucket>(financial: FinancialContribution, currencies: readonly { currency: string; buckets: readonly Bucket[] }[], amountOf: (bucket: Bucket) => string, label: string): void {
   for (const { currency, buckets } of currencies) for (const bucket of buckets) {
-    if (ExactDecimal.from(amount(bucket)).compare(ExactDecimal.from(financialContributionAmount(financial, currency, bucket.source, bucket.kind))) > 0) throw new Error(`${label} contribution exceeds financial contribution for ${currency}:${bucket.source}:${bucket.kind}`);
+    if (ExactDecimal.from(amountOf(bucket)).compare(ExactDecimal.from(financialContributionAmount(financial, currency, bucket.source, bucket.kind))) > 0) throw new Error(`${label} contribution exceeds financial contribution for ${currency}:${bucket.source}:${bucket.kind}`);
   }
 }
 
@@ -50,9 +55,9 @@ function assertTagUsageReconcilesWithFinancial(financial: FinancialContribution,
 export const ContributionConsistencyValidator = Object.freeze({
   validate(slices: ContributionSlices): void {
     assertCategoryTotalsReconcile(slices.financial, slices.categories);
-    assertSliceDoesNotExceedFinancial(slices.financial, slices.recurring.currencies, (bucket) => bucket.amount!, 'Recurring');
-    assertSliceDoesNotExceedFinancial(slices.financial, slices.sharing.currencies, (bucket) => bucket.personalAmount!, 'Sharing personal');
-    assertSliceDoesNotExceedFinancial(slices.financial, slices.merchants.currencies, (bucket) => bucket.amount!, 'Merchant');
+    assertSliceDoesNotExceedFinancial(slices.financial, slices.recurring.currencies, (bucket) => bucket.amount, 'Recurring');
+    assertSliceDoesNotExceedFinancial(slices.financial, slices.sharing.currencies, (bucket) => bucket.personalAmount, 'Sharing personal');
+    assertSliceDoesNotExceedFinancial(slices.financial, slices.merchants.currencies, (bucket) => bucket.amount, 'Merchant');
     assertTagUsageReconcilesWithFinancial(slices.financial, slices.tagUsage);
   },
 });
