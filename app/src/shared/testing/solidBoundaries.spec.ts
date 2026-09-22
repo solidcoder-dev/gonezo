@@ -604,7 +604,7 @@ describe('SOLID frontend boundaries', () => {
     expect(movementsRuntimeAdapter).toContain('listNativeScheduledMovements(this.queries, input)');
     expect(coreAdapter).not.toContain('function filterScheduledMovementItems');
     expect(coreAdapter).not.toContain('function mapPostedTransactionToSearchItem');
-    expect(analyticsRuntimeAdapter).toContain("from '../../analytics/infrastructure/analyticsQueries'");
+    expect(analyticsRuntimeAdapter).toMatch(/from '..\/..\/analytics\/infrastructure\/analytics[A-Za-z]+Queries'/);
     expect(coreAdapter).not.toContain('function buildSpendingOverview');
     expect(coreAdapter.split('\n').length).toBeLessThanOrEqual(120);
 
@@ -690,7 +690,7 @@ describe('SOLID frontend boundaries', () => {
     expect(coreAdapterWeb).not.toContain('listWebLedgerTransactions');
     expect(coreAdapterWeb).not.toContain('const fromDateEpoch = filters.fromDate');
     expect(coreAdapterWeb).not.toContain('const statusesFilter = filters.statuses');
-    expect(coreAdapterWeb).toContain("from '../../analytics/infrastructure/analyticsQueries'");
+    expect(coreAdapterWeb).toMatch(/from '..\/..\/analytics\/infrastructure\/analytics[A-Za-z]+Queries'/);
     expect(coreAdapterWeb).not.toContain('function buildSpendingOverview');
     expect(coreAdapterWeb.split('\n').length).toBeLessThanOrEqual(515);
 

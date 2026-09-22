@@ -34,26 +34,17 @@ import type {
   AnalyticsFlowReport,
 } from '../../analytics/application/analytics.port';
 import type { LedgerGetCashFlowSeriesResult } from '../../ledger/application/ledger.port';
-import {
-  analyticsGetCashFlowSeries,
-  analyticsGetFilterFacets,
-  analyticsGetFlowReport,
-  analyticsGetOverviewInsights,
-  analyticsGetOverviewSnapshot,
-  analyticsGetSpendingDashboard,
-  analyticsGetPeriodCashFlowSummary,
-  analyticsQueryMetrics,
-  analyticsGetSpendingOverview,
-  analyticsGetSpendingTimeline,
-  analyticsGetSpendingTopExpenses,
-  analyticsGetSpendingReport,
-  analyticsGetAnalyticsTopExpenses,
-  analyticsListCurrencies,
-} from '../../analytics/infrastructure/analyticsQueries';
+import { analyticsGetCashFlowSeries, analyticsGetPeriodCashFlowSummary } from '../../analytics/infrastructure/analyticsFlowQueries';
+import { analyticsGetFilterFacets } from '../../analytics/infrastructure/analyticsFilterQueries';
+import { analyticsListCurrencies } from '../../analytics/infrastructure/analyticsCurrencyQueries';
+import { analyticsGetOverviewInsights, analyticsGetOverviewSnapshot } from '../../analytics/infrastructure/analyticsOverviewQueries';
+import { analyticsQueryMetrics } from '../../analytics/infrastructure/analyticsMetricsQueries';
+import { analyticsGetSpendingDashboard, analyticsGetSpendingOverview, analyticsGetSpendingReport, analyticsGetSpendingTimeline, analyticsGetSpendingTopExpenses, analyticsGetAnalyticsTopExpenses } from '../../analytics/infrastructure/analyticsSpendingQueries';
+import { analyticsGetFlowReport } from '../../analytics/infrastructure/analyticsFlowQueries';
 import type { CoreAdapterWeb } from './coreAdapterWeb';
 import { CorePlugin } from './corePlugin';
 import { isNativeRuntime } from './runtimeAdapterSupport';
-import type { AnalyticsQueryPort } from '../../analytics/infrastructure/analyticsQueries';
+import type { AnalyticsQueryPort } from '../../analytics/infrastructure/analyticsQueryScope';
 
 export class AnalyticsRuntimeAdapter {
   private readonly web: CoreAdapterWeb;

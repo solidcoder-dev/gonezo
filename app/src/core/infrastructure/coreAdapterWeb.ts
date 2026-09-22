@@ -136,7 +136,12 @@ import {
 import { WebTaxonomyService } from '../../taxonomy/infrastructure/webTaxonomyService';
 import { sortNetWorthCurrencies } from '../../ledger/application/netWorthOrdering';
 import { listAccountBalances } from './accountBalancesQuery';
-import { analyticsGetAnalyticsTopExpenses, analyticsGetCashFlowSeries, analyticsGetFilterFacets, analyticsGetFlowReport, analyticsGetOverviewInsights, analyticsGetOverviewSnapshot, analyticsGetPeriodCashFlowSummary, analyticsQueryMetrics, analyticsGetSpendingDashboard, analyticsGetSpendingOverview, analyticsGetSpendingReport, analyticsGetSpendingTimeline, analyticsGetSpendingTopExpenses, analyticsListCurrencies } from '../../analytics/infrastructure/analyticsQueries';
+import { analyticsGetAnalyticsTopExpenses, analyticsGetSpendingDashboard, analyticsGetSpendingOverview, analyticsGetSpendingReport, analyticsGetSpendingTimeline, analyticsGetSpendingTopExpenses } from '../../analytics/infrastructure/analyticsSpendingQueries';
+import { analyticsGetCashFlowSeries, analyticsGetFlowReport, analyticsGetPeriodCashFlowSummary } from '../../analytics/infrastructure/analyticsFlowQueries';
+import { analyticsGetFilterFacets } from '../../analytics/infrastructure/analyticsFilterQueries';
+import { analyticsListCurrencies } from '../../analytics/infrastructure/analyticsCurrencyQueries';
+import { analyticsGetOverviewInsights, analyticsGetOverviewSnapshot } from '../../analytics/infrastructure/analyticsOverviewQueries';
+import { analyticsQueryMetrics } from '../../analytics/infrastructure/analyticsMetricsQueries';
 import type { AnalyticsAccountBalanceSnapshotInput, AnalyticsAccountBalanceSnapshotResult, AnalyticsAccountBalanceCoverageResult } from '../../analytics/application/analytics.port';
 import { getWebAccountBalanceSnapshot } from '../../analytics/infrastructure/webAccountBalanceSnapshot';
 import { WebAnalyticsExclusionService } from '../../analytics/infrastructure/webAnalyticsExclusionService';

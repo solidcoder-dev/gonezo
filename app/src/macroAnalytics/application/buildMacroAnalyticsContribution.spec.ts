@@ -14,8 +14,9 @@ import type { AccountBalanceFactSourcePort } from './accountBalanceFactSource.po
 import type { TagUsageFact } from '../domain/tagUsageFact';
 import { createTagUsageFact } from '../domain/tagUsageFact';
 import type { ContributionFactSetSourcePort } from './contributionFactSetSource.port';
+import type { createAnalyticsPeriod } from '../domain/analyticsPeriod';
 
-type FactQuery = Readonly<{ period: ReturnType<typeof import('../domain/analyticsPeriod').createAnalyticsPeriod>; timeZone: string; currency?: string }>;
+type FactQuery = Readonly<{ period: ReturnType<typeof createAnalyticsPeriod>; timeZone: string; currency?: string }>;
 type FinancialFactSource = Readonly<{ listFinancialFacts(query: FactQuery): Promise<readonly FinancialFact[]> }>;
 type CategoryFactSource = Readonly<{ listCategoryFacts(query: FactQuery): Promise<readonly CategoryFact[]> }>;
 type RecurringFactSource = Readonly<{ listRecurringFacts(query: FactQuery): Promise<readonly RecurringFact[]> }>;
