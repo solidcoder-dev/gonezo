@@ -7,7 +7,6 @@ export type { MacroAccountTypeCode } from '../domain/macroAccountTypeCode';
 export { createAccountBalanceFact } from '../domain/accountBalanceFact';
 export type { AccountBalanceFact } from '../domain/accountBalanceFact';
 export type { AccountBalanceFactSourcePort, AccountBalanceFactQuery } from './accountBalanceFactSource.port';
-export type { CategoryFactSourcePort, CategoryFactQuery } from './categoryFactSource.port';
 export type {
   DecimalAmount,
   FinancialFact,
@@ -27,7 +26,6 @@ export { aggregateTagUsageFacts } from '../domain/tagUsageContribution';
 export type { TagUsageContribution, TagUsageContributionBucket, TagUsageCurrencyContribution } from '../domain/tagUsageContribution';
 export { createTagUsageFact } from '../domain/tagUsageFact';
 export type { TagUsageFact, TagUsageFactKind, TagUsageFactSource } from '../domain/tagUsageFact';
-export type { TagUsageFactSourcePort, TagUsageFactQuery } from './tagUsageFactSource.port';
 export { deriveContributionDimensions } from '../domain/contributionDimensions';
 export type { ContributionAgeBand, ContributionDimensions, ContributionSex } from '../domain/contributionDimensions';
 export type { ContributionProfile, ContributionProfileSex } from '../domain/contributionProfile';
@@ -45,13 +43,11 @@ export { aggregateRecurringFacts } from '../domain/recurringContribution';
 export type { RecurringContribution, RecurringContributionBucket, RecurringCurrencyContribution } from '../domain/recurringContribution';
 export { createRecurringFact } from '../domain/recurringFact';
 export type { RecurringFact, RecurringFactKind, RecurringFactSource } from '../domain/recurringFact';
-export type { RecurringFactSourcePort, RecurringFactQuery } from './recurringFactSource.port';
 export { createMacroMerchantCode, UNMAPPED_MACRO_MERCHANT_CODE } from '../domain/macroMerchantCode';
 export type { MacroMerchantCode } from '../domain/macroMerchantCode';
 export type { CanonicalMerchantResolverPort } from './canonicalMerchantResolver.port';
 export { createMerchantFact } from '../domain/merchantFact';
 export type { MerchantFact, MerchantFactKind, MerchantFactSource } from '../domain/merchantFact';
-export type { MerchantFactSourcePort, MerchantFactQuery } from './merchantFactSource.port';
 export { aggregateMerchantFacts } from '../domain/merchantContribution';
 export type { MerchantContribution, MerchantContributionBucket, MerchantCurrencyContribution } from '../domain/merchantContribution';
 export { canonicalMacroAnalyticsContribution } from '../domain/canonicalMacroAnalyticsContribution';

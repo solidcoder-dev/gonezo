@@ -3,20 +3,26 @@ import { createAnalyticsContributionConsent, type AnalyticsContributionConsent }
 import { createFinancialFact } from '../domain/financialFact';
 import type { ContributionProfile } from '../domain/contributionProfile';
 import type { AnalyticsContributionConsentPort } from './analyticsContributionConsent.port';
-import type { FinancialFactSourcePort } from './financialFactSource.port';
 import type { ContributionProfileSourcePort } from './contributionProfileSource.port';
-import type { CategoryFactSourcePort } from './categoryFactSource.port';
 import type { FinancialFact } from '../domain/financialFact';
 import type { CategoryFact } from '../domain/categoryFact';
-import type { RecurringFactSourcePort } from './recurringFactSource.port';
+import type { RecurringFact } from '../domain/recurringFact';
 import { buildMacroAnalyticsContribution } from './buildMacroAnalyticsContribution';
-import type { SharingFactSourcePort } from './sharingFactSource.port';
-import type { MerchantFactSourcePort } from './merchantFactSource.port';
+import type { SharingFact } from '../domain/sharingFact';
+import type { MerchantFact } from '../domain/merchantFact';
 import type { AccountBalanceFactSourcePort } from './accountBalanceFactSource.port';
-import type { TagUsageFactSourcePort } from './tagUsageFactSource.port';
+import type { TagUsageFact } from '../domain/tagUsageFact';
 import { createTagUsageFact } from '../domain/tagUsageFact';
 import type { AnalyticsPeriodSnapshotPort } from './analyticsPeriodSnapshot.port';
 import type { AnalyticsMovementFactItem } from '../../analytics/application/analytics.port';
+
+type FactQuery = Readonly<{ period: ReturnType<typeof import('../domain/analyticsPeriod').createAnalyticsPeriod>; timeZone: string; currency?: string }>;
+type FinancialFactSource = Readonly<{ listFinancialFacts(query: FactQuery): Promise<readonly FinancialFact[]> }>;
+type CategoryFactSource = Readonly<{ listCategoryFacts(query: FactQuery): Promise<readonly CategoryFact[]> }>;
+type RecurringFactSource = Readonly<{ listRecurringFacts(query: FactQuery): Promise<readonly RecurringFact[]> }>;
+type SharingFactSource = Readonly<{ listSharingFacts(query: FactQuery): Promise<readonly SharingFact[]> }>;
+type MerchantFactSource = Readonly<{ listMerchantFacts(query: FactQuery): Promise<readonly MerchantFact[]> }>;
+type TagUsageFactSource = Readonly<{ listTagUsageFacts(query: FactQuery): Promise<readonly TagUsageFact[]> }>;
 
 const profile: ContributionProfile = { birthYear: 1995, sex: 'female', countryCode: 'ES', regionCode: 'ES-CN' };
 const granted = createAnalyticsContributionConsent({ userId: 'private-user-id', status: 'GRANTED', noticeVersion: 1, decidedAt: '2026-09-18T10:00:00Z' });
@@ -32,12 +38,12 @@ function categoriesFor(facts: readonly FinancialFact[]): CategoryFact[] {
 }
 
 function snapshotFromSources(
-  financialFacts: FinancialFactSourcePort,
-  categoryFacts: CategoryFactSourcePort,
-  recurringFacts: RecurringFactSourcePort,
-  sharingFacts: SharingFactSourcePort,
-  merchantFacts: MerchantFactSourcePort,
-  tagUsageFacts: TagUsageFactSourcePort,
+  financialFacts: FinancialFactSource,
+  categoryFacts: CategoryFactSource,
+  recurringFacts: RecurringFactSource,
+  sharingFacts: SharingFactSource,
+  merchantFacts: MerchantFactSource,
+  tagUsageFacts: TagUsageFactSource,
 ): AnalyticsPeriodSnapshotPort {
   return {
     async readPeriodSnapshot({ period, timeZone }) {
@@ -106,13 +112,13 @@ function snapshotFromSources(
 function sources(consent: AnalyticsContributionConsent | null = granted, contributionProfile: ContributionProfile | null = profile, facts = [fact]) {
   const consentSource: AnalyticsContributionConsentPort = { get: vi.fn(async () => consent), save: vi.fn(async () => {}) };
   const profileSource: ContributionProfileSourcePort = { get: vi.fn(async () => contributionProfile) };
-  const factSource: FinancialFactSourcePort = { listFinancialFacts: vi.fn(async () => facts) };
-  const categoryFacts: CategoryFactSourcePort = { listCategoryFacts: vi.fn(async () => categoriesFor(facts)) };
-  const recurringFacts: RecurringFactSourcePort = { listRecurringFacts: vi.fn(async () => []) };
-  const sharingFacts: SharingFactSourcePort = { listSharingFacts: vi.fn(async () => []) };
-  const merchantFacts: MerchantFactSourcePort = { listMerchantFacts: vi.fn(async () => []) };
+  const factSource: FinancialFactSource = { listFinancialFacts: vi.fn(async () => facts) };
+  const categoryFacts: CategoryFactSource = { listCategoryFacts: vi.fn(async () => categoriesFor(facts)) };
+  const recurringFacts: RecurringFactSource = { listRecurringFacts: vi.fn(async () => []) };
+  const sharingFacts: SharingFactSource = { listSharingFacts: vi.fn(async () => []) };
+  const merchantFacts: MerchantFactSource = { listMerchantFacts: vi.fn(async () => []) };
   const accountBalanceFacts: AccountBalanceFactSourcePort = { listAccountBalanceFacts: vi.fn(async () => []) };
-  const tagUsageFacts: TagUsageFactSourcePort = { listTagUsageFacts: vi.fn(async () => facts.flatMap((item) => item.kind === 'INCOME' || item.kind === 'EXPENSE' ? [createTagUsageFact({
+  const tagUsageFacts: TagUsageFactSource = { listTagUsageFacts: vi.fn(async () => facts.flatMap((item) => item.kind === 'INCOME' || item.kind === 'EXPENSE' ? [createTagUsageFact({
     id: `${item.id}/tag-usage`, occurredAt: item.occurredAt, source: item.source, kind: item.kind,
     currency: item.currency, amount: String(item.amount), tagCount: 0,
   })] : [])) };
