@@ -16,17 +16,20 @@ class AndroidAnalyticsQueryCoreInstrumentedTest {
   private lateinit var context: Context
   private lateinit var ledger: AndroidLedgerCore
   private lateinit var accountId: String
+  private lateinit var excludedAccountId: String
 
   @Before
   fun setUp() {
     context = ApplicationProvider.getApplicationContext()
     ledger = AndroidLedgerCore.getInstance(context)
     accountId = ledger.openAccount("analytics-pagination-${UUID.randomUUID()}", "cash", "EUR", "2026-01-01T00:00:00Z", null).toString()
+    excludedAccountId = ledger.openAccount("analytics-excluded-${UUID.randomUUID()}", "cash", "EUR", "2026-01-01T00:00:00Z", null).toString()
   }
 
   @After
   fun tearDown() {
     ledger.deleteAccount(accountId)
+    ledger.deleteAccount(excludedAccountId)
   }
 
   @Test
@@ -56,5 +59,23 @@ class AndroidAnalyticsQueryCoreInstrumentedTest {
     assertEquals(150, result.facts.size)
     assertEquals(150, result.facts.map { it.analyticsFactId.value }.toSet().size)
     assertEquals(result.facts.sortedByDescending { it.effectiveAt }, result.facts)
+  }
+
+  @Test
+  fun analyticsReadScopePreservesSelectedAccountFiltering() {
+    ledger.recordExpense(accountId, "2026-06-15T00:00:00Z", "12.00", "EUR", "selected", null, null)
+    ledger.recordExpense(excludedAccountId, "2026-06-15T00:00:00Z", "34.00", "EUR", "excluded", null, null)
+
+    val result = AndroidAnalyticsQueryCore(context).query(
+      Instant.parse("2026-06-01T00:00:00Z"),
+      Instant.parse("2026-07-01T00:00:00Z"),
+      false,
+      false,
+      "EUR",
+      setOf(accountId),
+    )
+
+    assertEquals(listOf(accountId), result.facts.map { it.accountId }.distinct())
+    assertEquals(listOf("12.00"), result.facts.map { it.fullAmount.amount.toPlainString() })
   }
 }
