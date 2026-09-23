@@ -1,10 +1,9 @@
 import type { LedgerCashFlowGranularity } from '../../ledger/application/ledger.port';
-import type { AnalyticsCurrencyScopeInput, AnalyticsPeriodWindow } from './analyticsCommon.contract';
-import type { AnalyticsOverviewHighlight, AnalyticsOverviewWindow } from './analyticsOverview.contract';
+import type { AnalyticsCurrencyScopeInput, AnalyticsOverviewHighlight, AnalyticsOverviewWindow, AnalyticsPeriodWindow } from './analyticsCommon.contract';
 import type { AnalyticsPeriodSelection } from './analyticsPeriodSelection';
 import type { AnalyticsCategoryReference, AnalyticsSpendingMovement, AnalyticsSpendingPeriodWindow, AnalyticsSpendingReport } from './spendingReport';
 
-export type AnalyticsCashFlowSeriesInput = AnalyticsCurrencyScopeInput & { granularity: LedgerCashFlowGranularity; periodOffset?: number };
+export type { AnalyticsCashFlowSeriesInput } from './analyticsFlow.contract';
 export type AnalyticsSpendingOverviewInput = AnalyticsCurrencyScopeInput & { granularity: LedgerCashFlowGranularity; periodOffset?: number };
 export type AnalyticsSpendingOverviewCategory = { categoryId?: string; categoryName: string; amount: string; percentage: number };
 export type AnalyticsSpendingDashboardInput = AnalyticsCurrencyScopeInput;

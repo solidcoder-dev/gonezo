@@ -1,5 +1,6 @@
 import type { LedgerGetCashFlowSeriesResult } from '../../ledger/application/ledger.port';
-import type { AnalyticsCurrencyScopeInput, AnalyticsPeriodWindow } from './analyticsCommon.contract';
+import type { LedgerCashFlowGranularity } from '../../ledger/application/ledger.port';
+import type { AnalyticsCurrencyScopeInput, AnalyticsOverviewWindow, AnalyticsPeriodWindow } from './analyticsCommon.contract';
 import type { AnalyticsPeriodSelection } from './analyticsPeriodSelection';
 import type { AnalyticsFlowReport } from './analyticsFlowReport';
 
@@ -14,4 +15,7 @@ export type AnalyticsFlowInsightItem = { key: AnalyticsFlowInsightKey; title: st
 export type AnalyticsFlowInsightsInput = AnalyticsCurrencyScopeInput;
 export type AnalyticsFlowInsightsResult = { items: AnalyticsFlowInsightItem[] };
 export type AnalyticsFlowReportInput = AnalyticsCurrencyScopeInput & { periodSelection: AnalyticsPeriodSelection };
+export type AnalyticsCashFlowSeriesInput = AnalyticsCurrencyScopeInput & { granularity: LedgerCashFlowGranularity; periodOffset?: number };
+export type AnalyticsCashFlowSummaryResult = { incomeAmount: string; expenseAmount: string; inflowAmount?: string; outflowAmount?: string; netFlowAmount: string; previousIncomeChangePercent?: string; previousExpenseChangePercent?: string; previousNetFlowChangePercent?: string };
+export type { AnalyticsOverviewWindow };
 export type { AnalyticsFlowReport, LedgerGetCashFlowSeriesResult };

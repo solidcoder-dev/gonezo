@@ -8,9 +8,10 @@ import type {
 } from './analyticsMovementFacts.contract';
 import type { AnalyticsCurrencyScopeInput } from './analyticsCommon.contract';
 import type { AnalyticsQueryMetricsInput, AnalyticsQueryMetricsResult } from './analyticsMetrics.contract';
-import type { AnalyticsCashFlowSeriesInput, AnalyticsSpendingDashboardInput, AnalyticsSpendingDashboardResult, AnalyticsSpendingOverviewInput, AnalyticsSpendingOverviewResult, AnalyticsSpendingReport, AnalyticsSpendingReportInput, AnalyticsSpendingTimelineInput, AnalyticsSpendingTimelineResult, AnalyticsSpendingTopExpensesInput, AnalyticsSpendingTopExpensesResult, AnalyticsTopExpensesInput, AnalyticsTopExpensesResult } from './analyticsSpending.contract';
+import type { AnalyticsSpendingDashboardInput, AnalyticsSpendingDashboardResult, AnalyticsSpendingOverviewInput, AnalyticsSpendingOverviewResult, AnalyticsSpendingReport, AnalyticsSpendingReportInput, AnalyticsSpendingTimelineInput, AnalyticsSpendingTimelineResult, AnalyticsSpendingTopExpensesInput, AnalyticsSpendingTopExpensesResult, AnalyticsTopExpensesInput, AnalyticsTopExpensesResult } from './analyticsSpending.contract';
+import type { AnalyticsCashFlowSeriesInput, AnalyticsCashFlowSummaryResult } from './analyticsFlow.contract';
 import type { AnalyticsFlowReport, AnalyticsFlowReportInput } from './analyticsFlow.contract';
-import type { AnalyticsCashFlowSummaryResult, AnalyticsGetFilterFacetsInput, AnalyticsGetFilterFacetsResult, AnalyticsListCurrenciesResult, AnalyticsOverviewInsightsInput, AnalyticsOverviewInsightsResult, AnalyticsOverviewSnapshotInput, AnalyticsOverviewSnapshotResult } from './analyticsOverview.contract';
+import type { AnalyticsGetFilterFacetsInput, AnalyticsGetFilterFacetsResult, AnalyticsListCurrenciesResult, AnalyticsOverviewInsightsInput, AnalyticsOverviewInsightsResult, AnalyticsOverviewSnapshotInput, AnalyticsOverviewSnapshotResult } from './analyticsOverview.contract';
 import type { AnalyticsListIgnoredMovementsResult, AnalyticsSetMovementIgnoredInput } from './analyticsExclusions.contract';
 import type { LedgerGetCashFlowSeriesResult } from '../../ledger/application/ledger.port';
 
