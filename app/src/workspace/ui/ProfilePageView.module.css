@@ -7,3 +7,11 @@
 .notificationRow { min-height: 48px; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; }
 .notificationRow:focus-visible { outline: 2px solid var(--color-action-primary-focus); outline-offset: 2px; }
 @media (max-width: 360px) { .actions { grid-template-columns: 1fr; } }
+.analyticsSection, .securitySection { display: grid; gap: var(--space-md); margin-block: var(--space-xl); }
+.analyticsSection h2, .securitySection h2 { margin: 0; font-size: var(--font-size-md); }
+.securityState { display: flex; min-height: 48px; align-items: center; justify-content: space-between; margin: 0; }
+.securityForm { display: grid; gap: var(--space-sm); }
+.securityForm input { min-height: 52px; padding: var(--space-sm) var(--space-md); border: 1px solid var(--color-border-default); border-radius: var(--radius-md); background: var(--color-surface-primary); color: var(--color-text-primary); font: inherit; }
+.secondaryAction { min-height: 48px; justify-self: start; padding: var(--space-sm) 0; border: 0; background: transparent; color: var(--color-action-primary); font: inherit; font-weight: var(--font-weight-medium); }
+.analyticsRow { display: flex; min-height: 48px; align-items: center; justify-content: space-between; gap: var(--space-md); padding: var(--space-sm) 0; border: 0; background: transparent; color: var(--color-text-primary); font: inherit; text-align: left; }
+.analyticsRow:focus-visible, .securitySection button:focus-visible { outline: 2px solid var(--color-action-primary-focus); outline-offset: 2px; }

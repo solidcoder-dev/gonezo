@@ -13,6 +13,7 @@ import { getAnalyticsProfile } from '../../analyticsProfile/application/analytic
 import { analyticsProfileLabels } from '../../analyticsProfile/application/AnalyticsProfileLabels';
 import { AuthenticationSessionContext } from '../../authentication/application/authenticationSessionContext';
 import { useContext, useEffect, useState } from 'react';
+import styles from '../ui/ProfilePageView.module.css';
 import type { AnalyticsProfile } from '../../analyticsProfile/domain/analyticsProfile';
 import type { AnalyticsContributionConsent } from '../../macroAnalytics/domain/analyticsContributionConsent';
 import type { AnalyticsContributionConsentPort } from '../../macroAnalytics/application/analyticsContributionConsent.port';
@@ -249,7 +250,7 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
           },
         }}
       />
-      <section className="profile-analytics-section" aria-labelledby="profile-analytics-heading">
+      <section className={styles.analyticsSection} aria-labelledby="profile-analytics-heading">
         <h2 id="profile-analytics-heading">Privacy &amp; Analytics</h2>
         {analyticsProfileError ? <p role="alert">{analyticsProfileError}</p> : null}
         {([
@@ -257,8 +258,8 @@ export function ProfilePage({ required, provided = {} }: ProfilePageProps) {
           ['Sex', analyticsProfileSummary?.sex ?? ''],
           ['Country', analyticsProfileSummary?.country ?? ''],
           ['Region', analyticsProfileSummary?.region ?? ''],
-        ] as const).map(([label, value]) => <button className="profile-analytics-row" type="button" key={label} onClick={() => { void navigate('/profile/analytics-profile'); }}><span>{label}</span><span>{analyticsProfileLoading ? 'Loading…' : value || 'Edit'}<span aria-hidden="true"> ›</span></span></button>)}
-        {required.contributionConsent ? <div className="profile-analytics-row">
+        ] as const).map(([label, value]) => <button className={styles.analyticsRow} type="button" key={label} onClick={() => { void navigate('/profile/analytics-profile'); }}><span>{label}</span><span>{analyticsProfileLoading ? 'Loading…' : value || 'Edit'}<span aria-hidden="true"> ›</span></span></button>)}
+        {required.contributionConsent ? <div className={styles.analyticsRow}>
           <span>Optional contribution</span>
           {contributionConsentLoading ? <span role="status">Loading…</span> : contributionConsentError && !contributionConsent
             ? <span><span role="alert">{contributionConsentError}</span> <button type="button" onClick={() => { setContributionConsentError(''); setContributionConsentReloadCount((count) => count + 1); }}>Try again</button></span>

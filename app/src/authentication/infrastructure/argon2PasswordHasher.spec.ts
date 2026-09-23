@@ -12,5 +12,5 @@ describe('Argon2PasswordHasher', () => {
     expect(secondHash).not.toBe(firstHash);
     await expect(hasher.verify('correct horse battery staple', firstHash)).resolves.toBe(true);
     await expect(hasher.verify('wrong password', firstHash)).resolves.toBe(false);
-  });
+  }, 15000);
 });

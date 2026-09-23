@@ -137,7 +137,7 @@ export function useWorkspaceToast() {
   const clearExpirationTimer = useCallback(() => {
     const expiration = expirationRef.current;
     if (!expiration || expiration.timerId === null) return;
-    globalThis.clearTimeout(expiration.timerId);
+    clearTimeout(expiration.timerId);
     expiration.timerId = null;
   }, []);
 
@@ -147,7 +147,7 @@ export function useWorkspaceToast() {
     if (!expiration || expiration.id !== id) return;
     expiration.remainingMs = remainingMs;
     expiration.startedAtMs = Date.now();
-    expiration.timerId = window.setTimeout(() => {
+    expiration.timerId = setTimeout(() => {
       expirationRef.current = null;
       setNotices((current) => current.filter((notice) => notice.id !== id));
       if (latestNoticeIdRef.current === id) {

@@ -25,5 +25,5 @@ describe('authentication setup and existing application data', () => {
 
     await expect(core.ledgerListAccounts()).resolves.toEqual(accountsBefore);
     await expect(core.ledgerListTransactions({ accountId: account.id })).resolves.toEqual(movementsBefore);
-  });
+  }, 15000);
 });

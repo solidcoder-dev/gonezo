@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App, type AppPort } from '../../App';
 import type { LedgerAccountType } from '../../ledger/application/ledger.port';
@@ -16,6 +17,12 @@ vi.mock('../../authentication/infrastructure/createAuthenticationService', () =>
     disableDeviceUnlock: async () => undefined,
     logout: () => undefined,
   }),
+}));
+vi.mock('../../analyticsProfile/application/RequiredOnboardingGate', () => ({
+  RequiredOnboardingGate: ({ children }: { children: ReactNode }) => children,
+}));
+vi.mock('../../macroAnalytics/application/AnalyticsContributionConsentGate', () => ({
+  AnalyticsContributionConsentGate: ({ children }: { children: ReactNode }) => children,
 }));
 import { resolveSchedulingKind } from '../../shared/domain/schedulingKind';
 import type {
@@ -1061,7 +1068,7 @@ function makeCore(transactionCount = 0): AppTestPort {
 describe('App Accounts UX', () => {
   async function openMainAccountManagement() {
     await screen.findByRole('heading', { name: 'Balances by currency' });
-    fireEvent.click(screen.getByRole('button', { name: 'See all USD accounts' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'See all USD accounts' }));
     const accountsDialog = await screen.findByRole('dialog', { name: 'USD accounts' });
     fireEvent.click(within(accountsDialog).getByRole('button', { name: 'Manage Main' }));
   }
@@ -1086,7 +1093,7 @@ describe('App Accounts UX', () => {
 
     expect(await screen.findByRole('heading', { name: 'Balances by currency' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Balances by currency' })).toBeInTheDocument();
-    expect(screen.getAllByText('$250.00').length).toBeGreaterThan(0);
+    await waitFor(() => expect(screen.getAllByText('$250.00').length).toBeGreaterThan(0));
     expect(screen.queryByText('Net balance')).not.toBeInTheDocument();
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
   });
@@ -1107,7 +1114,7 @@ describe('App Accounts UX', () => {
     );
 
     expect(await screen.findByRole('heading', { name: 'Balances by currency' })).toBeInTheDocument();
-    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(['EUR', 'USD']);
+    await waitFor(() => expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(['EUR', 'USD']));
     expect(core.ledgerGetNetWorthByCurrency).toHaveBeenCalled();
   });
 
@@ -1147,7 +1154,7 @@ describe('App Accounts UX', () => {
     );
 
     expect(await screen.findByRole('heading', { name: 'Balances by currency' })).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: 'Choose balance currency' })).toHaveValue('USD');
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Choose balance currency' })).toHaveValue('USD'));
     expect(screen.getByRole('article', { name: 'USD, selected currency' })).toBeInTheDocument();
   });
 
@@ -1391,9 +1398,13 @@ describe('App Accounts UX', () => {
     fireEvent.click(within(composer).getByRole('button', { name: 'Sharing' }));
 
     const shareEditor = await screen.findByRole('main', { name: 'Share expense' });
-    fireEvent.change(within(shareEditor).getByLabelText('Search people or groups'), { target: { value: 'Emma' } });
-    fireEvent.click(within(shareEditor).getByRole('button', { name: /Emma/i }));
-    fireEvent.click(within(shareEditor).getByRole('button', { name: 'Apply share' }));
+    fireEvent.click(within(shareEditor).getByRole('button', { name: 'Add people or groups' }));
+    const participantSelection = await screen.findByRole('main', { name: 'Add people or groups' });
+    fireEvent.change(within(participantSelection).getByLabelText('Search people'), { target: { value: 'Emma' } });
+    fireEvent.click(within(participantSelection).getByRole('button', { name: /Emma/i }));
+    fireEvent.click(within(participantSelection).getByRole('button', { name: 'Confirm' }));
+    const selectedShareEditor = await screen.findByRole('main', { name: 'Share expense' });
+    fireEvent.click(within(selectedShareEditor).getByRole('button', { name: 'Apply share' }));
 
     fireEvent.click(await screen.findByRole('button', { name: 'Edit share, 1 owes you, 20.00 USD' }));
     const reopenedShareEditor = await screen.findByRole('main', { name: 'Share expense' });
@@ -1431,9 +1442,13 @@ describe('App Accounts UX', () => {
     fireEvent.click(within(composer).getByRole('button', { name: 'Sharing' }));
 
     const shareEditor = await screen.findByRole('main', { name: 'Share expense' });
-    fireEvent.change(within(shareEditor).getByLabelText('Search people or groups'), { target: { value: 'Emma' } });
-    fireEvent.click(within(shareEditor).getByRole('button', { name: /Emma/i }));
-    fireEvent.click(within(shareEditor).getByRole('button', { name: 'Apply share' }));
+    fireEvent.click(within(shareEditor).getByRole('button', { name: 'Add people or groups' }));
+    const participantSelection = await screen.findByRole('main', { name: 'Add people or groups' });
+    fireEvent.change(within(participantSelection).getByLabelText('Search people'), { target: { value: 'Emma' } });
+    fireEvent.click(within(participantSelection).getByRole('button', { name: /Emma/i }));
+    fireEvent.click(within(participantSelection).getByRole('button', { name: 'Confirm' }));
+    const selectedShareEditor = await screen.findByRole('main', { name: 'Share expense' });
+    fireEvent.click(within(selectedShareEditor).getByRole('button', { name: 'Apply share' }));
     fireEvent.click(screen.getByRole('button', { name: 'Post now' }));
 
     await waitFor(() => {
@@ -1889,7 +1904,7 @@ describe('App Accounts UX', () => {
       expect(core.applicationImportBackup).toHaveBeenCalledTimes(1);
       expect(core.movementsImportBackup).not.toHaveBeenCalled();
     });
-    expect(await screen.findByRole('status')).toHaveTextContent('Restore completed.');
+    await waitFor(() => expect(screen.getByText('Restore completed.')).toBeInTheDocument());
   });
 
   it('shows application restore failures and preserves movement importer isolation', async () => {
@@ -2291,7 +2306,7 @@ describe('App Accounts UX', () => {
     );
 
     await screen.findByRole('heading', { name: 'Balances by currency' });
-    expect(screen.getAllByText(/\$100\.00/).length).toBeGreaterThan(0);
+    await waitFor(() => expect(screen.getAllByText(/\$100\.00/).length).toBeGreaterThan(0));
 
     await openMode('Expense');
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '12.5' } });

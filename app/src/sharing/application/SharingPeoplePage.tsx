@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { SharingPersonItem } from './sharing.port';
-import type { CorePort } from '../../core/application/corePort';
+import type { SharingPersonItem, SharingPort } from './sharing.port';
 import { SharingPeoplePageView } from '../ui/SharingPeoplePageView';
 
-export type SharingPeoplePageProps = { readonly required: { readonly core: Pick<CorePort, 'sharingListPeople' | 'sharingRenamePerson'> } };
+export type SharingPeoplePageProps = { readonly required: { readonly core: Pick<SharingPort, 'sharingListPeople' | 'sharingRenamePerson'> } };
 
 export function SharingPeoplePage({ required }: SharingPeoplePageProps) {
   const navigate = useNavigate();
