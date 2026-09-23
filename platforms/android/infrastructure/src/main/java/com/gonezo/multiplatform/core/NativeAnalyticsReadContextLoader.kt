@@ -17,21 +17,23 @@ internal data class NativeAnalyticsReadContext(
   val accounts: List<AndroidLedgerCore.LedgerAccountView>,
   val recurringMovements: List<RecurringMovement>,
   val recurringMovementsById: Map<RecurringMovementId, RecurringMovement>,
-  val occurrencesById: Map<UUID, RecurringMovementOccurrence>,
-  val occurrencesByTransactionId: Map<String, RecurringMovementOccurrence>,
-  val occurrencesBySeriesAndDueAt: Map<Pair<RecurringMovementId, Instant>, RecurringMovementOccurrence>,
   val tagDisplayNamesById: Map<String, String>,
   val tagIdsByNormalizedName: Map<String, String>,
-  val sharesByTransaction: Map<String, MovementShare>,
-  val plannedSharesByExpected: Map<String, PlannedMovementShare>,
-  val sharingPlansByRecurring: Map<String, RecurringSharePlan>,
 )
 
-internal data class NativeAnalyticsReadDependencies(
-  val occurrences: List<RecurringMovementOccurrence> = emptyList(),
-  val movementShares: List<MovementShare> = emptyList(),
-  val plannedMovementShares: List<PlannedMovementShare> = emptyList(),
-  val recurringSharePlans: List<RecurringSharePlan> = emptyList(),
+internal data class PostedAnalyticsDependencies(
+  val occurrencesByTransactionId: Map<String, RecurringMovementOccurrence>,
+  val sharesByTransaction: Map<String, MovementShare>,
+)
+
+internal data class ExpectedAnalyticsDependencies(
+  val occurrencesById: Map<UUID, RecurringMovementOccurrence>,
+  val plannedSharesByExpected: Map<String, PlannedMovementShare>,
+)
+
+internal data class ScheduledAnalyticsDependencies(
+  val occurrencesBySeriesAndDueAt: Map<Pair<RecurringMovementId, Instant>, RecurringMovementOccurrence>,
+  val sharingPlansByRecurring: Map<String, RecurringSharePlan>,
 )
 
 internal class NativeAnalyticsReadContextLoader(context: android.content.Context) {
@@ -45,26 +47,32 @@ internal class NativeAnalyticsReadContextLoader(context: android.content.Context
 
   fun load(accountIds: Set<String>, includePlannedMovements: Boolean): NativeAnalyticsReadContext {
     val accounts = ledger.listAccounts().let { allAccounts -> if (accountIds.isEmpty()) allAccounts else allAccounts.filter { it.id in accountIds } }
-    val scopedAccountIds = accounts.mapTo(hashSetOf()) { it.id }
     val recurringMovements = accounts.flatMap { account -> recurring.listBySourceAccount(account.id) }
       .distinctBy { it.id }
     val taxonomyTags = AndroidTaxonomyTagRepository(database).listAll()
-    return NativeAnalyticsReadContext(includePlannedMovements, accounts, recurringMovements, recurringMovements.associateBy { it.id }, emptyMap(), emptyMap(), emptyMap(), taxonomyTags.associate { it.id.toString() to it.name }, taxonomyTags.associate { TagName.normalizeTagName(it.name) to it.id.toString() }, emptyMap(), emptyMap(), emptyMap())
+    return NativeAnalyticsReadContext(
+      includePlannedMovements = includePlannedMovements,
+      accounts = accounts,
+      recurringMovements = recurringMovements,
+      recurringMovementsById = recurringMovements.associateBy { it.id },
+      tagDisplayNamesById = taxonomyTags.associate { it.id.toString() to it.name },
+      tagIdsByNormalizedName = taxonomyTags.associate { TagName.normalizeTagName(it.name) to it.id.toString() },
+    )
   }
 
-  fun postedDependencies(transactionIds: Collection<String>) = NativeAnalyticsReadDependencies(
-    occurrences = occurrences.findByLedgerTransactionIds(transactionIds),
-    movementShares = movementShares.findBySourceTransactionIds(transactionIds),
+  fun postedDependencies(transactionIds: Collection<String>) = PostedAnalyticsDependencies(
+    occurrencesByTransactionId = occurrences.findByLedgerTransactionIds(transactionIds).associateBy { requireNotNull(it.ledgerTransactionId) },
+    sharesByTransaction = movementShares.findBySourceTransactionIds(transactionIds).associateBy { requireNotNull(it.sourceTransactionId) },
   )
 
-  fun expectedDependencies(expectedMovementIds: Collection<String>, originOccurrenceIds: Collection<String>, includePlannedMovements: Boolean) = NativeAnalyticsReadDependencies(
-    occurrences = occurrences.findByIds(originOccurrenceIds.mapNotNull { runCatching { UUID.fromString(it) }.getOrNull() }),
-    plannedMovementShares = if (includePlannedMovements) plannedShares.findByExpectedMovementIds(expectedMovementIds) else emptyList(),
+  fun expectedDependencies(expectedMovementIds: Collection<String>, originOccurrenceIds: Collection<String>, includePlannedMovements: Boolean) = ExpectedAnalyticsDependencies(
+    occurrencesById = occurrences.findByIds(originOccurrenceIds.mapNotNull { runCatching { UUID.fromString(it) }.getOrNull() }).associateBy { it.id },
+    plannedSharesByExpected = if (includePlannedMovements) plannedShares.findByExpectedMovementIds(expectedMovementIds).associateBy { requireNotNull(it.expectedMovementRef.value) } else emptyMap(),
   )
 
-  fun scheduledDependencies(recurringMovementIds: Collection<RecurringMovementId>, fromInclusive: Instant, toExclusive: Instant, includePlannedMovements: Boolean) = NativeAnalyticsReadDependencies(
-    occurrences = occurrences.findByRecurringMovementIdsAndWindow(recurringMovementIds, fromInclusive, toExclusive),
-    recurringSharePlans = if (includePlannedMovements) recurringSharePlans.findByRecurringMovementRefs(recurringMovementIds.map(RecurringMovementId::toString)) else emptyList(),
+  fun scheduledDependencies(recurringMovementIds: Collection<RecurringMovementId>, fromInclusive: Instant, toExclusive: Instant, includePlannedMovements: Boolean) = ScheduledAnalyticsDependencies(
+    occurrencesBySeriesAndDueAt = occurrences.findByRecurringMovementIdsAndWindow(recurringMovementIds, fromInclusive, toExclusive).associateBy { it.recurringMovementId to it.dueAt },
+    sharingPlansByRecurring = if (includePlannedMovements) recurringSharePlans.findByRecurringMovementRefs(recurringMovementIds.map(RecurringMovementId::toString)).associateBy { requireNotNull(it.recurringMovementRef.value) } else emptyMap(),
   )
 
   fun tagIdsByTransaction(transactionIds: Collection<String>): Map<String, Set<String>> = transactionIds.queryInChunks { ids ->

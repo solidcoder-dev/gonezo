@@ -81,17 +81,15 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
     }
     val transactionIds = transactions.map { it.id }
     val dependencies = readContextLoader.postedDependencies(transactionIds)
-    val occurrencesByTransactionId = dependencies.occurrences.associateBy { it.ledgerTransactionId }
-    val sharesByTransactionId = dependencies.movementShares.associateBy { it.sourceTransactionId }
     val tagIdsByTransaction = readContextLoader.tagIdsByTransaction(transactionIds)
     val categoryIdsByTransaction = readContextLoader.categoryIdsByTransaction(transactionIds)
     val splitAmountsByTransaction = readContextLoader.splitAmountsByTransaction(transactionIds)
     return transactions.mapNotNull { transaction ->
       val type = transaction.type.toAnalyticsType() ?: return@mapNotNull null
       val amount = Money(BigDecimal(transaction.amount), transaction.currency)
-      val attribution = if (type.isEconomicMovement()) sharesByTransactionId[transaction.id]?.let(sharingAttribution::posted) else null
+      val attribution = if (type.isEconomicMovement()) dependencies.sharesByTransaction[transaction.id]?.let(sharingAttribution::posted) else null
       val amounts = analyticsMovementAmounts(amount, attribution)
-      val occurrence = occurrencesByTransactionId[transaction.id]
+      val occurrence = dependencies.occurrencesByTransactionId[transaction.id]
       val assignedTagIds = tagIdsByTransaction[transaction.id].orEmpty()
       AnalyticsPostedMovement(
         id = transaction.id, effectiveAt = Instant.parse(transaction.occurredAt), accountId = transaction.accountId,
@@ -111,13 +109,11 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
   private fun pendingExpected(window: AnalyticsMovementReadWindow, readContext: NativeAnalyticsReadContext): List<AnalyticsExpectedMovement> = readContext.accounts.flatMap { account ->
     expected.listMovements(account.id, false).filter { it.status.equals("pending", true) && window.contains(Instant.parse(it.expectedAt)) }.let { movements ->
       val dependencies = readContextLoader.expectedDependencies(movements.map { it.id }, movements.mapNotNull { it.originOccurrenceId }, readContext.includePlannedMovements)
-      val sharesByExpected = dependencies.plannedMovementShares.associateBy { it.expectedMovementRef.value }
-      val occurrencesById = dependencies.occurrences.associateBy { it.id }
       movements.mapNotNull { movement ->
         val at = Instant.parse(movement.expectedAt)
         val type = movement.type.toAnalyticsType() ?: return@mapNotNull null
         val amount = Money(BigDecimal(movement.amount), movement.currency)
-        val attribution = if (type.isEconomicMovement()) sharesByExpected[movement.id]?.let(sharingAttribution::expected) else null
+        val attribution = if (type.isEconomicMovement()) dependencies.plannedSharesByExpected[movement.id]?.let(sharingAttribution::expected) else null
         val amounts = analyticsMovementAmounts(amount, attribution)
         val tags = analyticsTags(movement.tagIds, movement.tagNames, readContext)
         AnalyticsExpectedMovement(
@@ -127,7 +123,7 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
           tagIds = tags.mapNotNullTo(linkedSetOf(), AnalyticsTagReference::tagId),
           originOccurrenceId = movement.originOccurrenceId, originRecurringMovementId = movement.originRecurringMovementId,
           resolvedTransactionId = movement.resolvedTransactionId,
-          schedulingOrigin = movement.originOccurrenceId?.let { originId -> runCatching { UUID.fromString(originId) }.getOrNull()?.let { occurrencesById[it]?.let(::schedulingOrigin) } } ?: schedulingOrigin(movement.originOccurrenceId, movement.originRecurringMovementId, readContext.copy(occurrencesById = occurrencesById)),
+          schedulingOrigin = movement.originOccurrenceId?.let { originId -> runCatching { UUID.fromString(originId) }.getOrNull()?.let { dependencies.occurrencesById[it]?.let(::schedulingOrigin) } } ?: schedulingOrigin(movement.originOccurrenceId, movement.originRecurringMovementId, dependencies.occurrencesById, readContext),
           sharing = amounts.sharing,
           merchant = movement.merchant,
           tagNames = movement.tagNames,
@@ -139,17 +135,15 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
 
   private fun scheduled(window: AnalyticsMovementReadWindow, readContext: NativeAnalyticsReadContext): List<AnalyticsScheduledProjection> {
     val dependencies = readContextLoader.scheduledDependencies(readContext.recurringMovements.map { it.id }, window.fromInclusive, window.toExclusive, readContext.includePlannedMovements)
-    val persistedOccurrences = dependencies.occurrences.associateBy { it.recurringMovementId to it.dueAt }
-    val sharingPlansByRecurring = dependencies.recurringSharePlans.associateBy { it.recurringMovementRef.value }
     return readContext.recurringMovements.flatMap { movement ->
       projector.project(movement, window.fromInclusive, window.toExclusive) { dueAt, _ ->
-        persistedOccurrences[movement.id to dueAt]?.id?.toString()
+        dependencies.occurrencesBySeriesAndDueAt[movement.id to dueAt]?.id?.toString()
       }.map { occurrence ->
         val type = movement.type.value.toAnalyticsType() ?: return@map null
         val amount = Money(movement.amount, movement.currency)
-        val attribution = if (type.isEconomicMovement()) sharingPlansByRecurring[movement.id.toString()]?.let { sharingAttribution.scheduled(it, amount.amount) } else null
+        val attribution = if (type.isEconomicMovement()) dependencies.sharingPlansByRecurring[movement.id.toString()]?.let { sharingAttribution.scheduled(it, amount.amount) } else null
         val amounts = analyticsMovementAmounts(amount, attribution)
-        val persistedOccurrence = persistedOccurrences[movement.id to occurrence.effectiveAt]
+        val persistedOccurrence = dependencies.occurrencesBySeriesAndDueAt[movement.id to occurrence.effectiveAt]
         val schedulingKind = persistedOccurrence?.schedulingKind ?: movement.schedulingKind
         val tags = analyticsTags(movement.tagIds.toSet(), movement.tagNames, readContext)
         AnalyticsScheduledProjection(
@@ -182,9 +176,9 @@ class AndroidAnalyticsQueryCore(private val context: android.content.Context) {
   private fun analyticsCadence(cadence: RecurrenceCadenceSnapshot) =
     AnalyticsRecurrenceCadence(cadence.frequency.value, cadence.interval)
 
-  private fun schedulingOrigin(originOccurrenceId: String?, recurringMovementId: String?, readContext: NativeAnalyticsReadContext): AnalyticsSchedulingOrigin? {
+  private fun schedulingOrigin(originOccurrenceId: String?, recurringMovementId: String?, occurrencesById: Map<UUID, com.gonezo.recurrence.domain.RecurringMovementOccurrence>, readContext: NativeAnalyticsReadContext): AnalyticsSchedulingOrigin? {
     if (originOccurrenceId != null) {
-      val occurrence = runCatching { readContext.occurrencesById[UUID.fromString(originOccurrenceId)] }.getOrNull() ?: return null
+      val occurrence = runCatching { occurrencesById[UUID.fromString(originOccurrenceId)] }.getOrNull() ?: return null
       return schedulingOrigin(occurrence)
     }
     val recurringId = recurringMovementId ?: return null
