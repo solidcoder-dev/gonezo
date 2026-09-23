@@ -13,7 +13,7 @@ import { getAnalyticsProfile } from '../../analyticsProfile/application/analytic
 import { analyticsProfileLabels } from '../../analyticsProfile/application/AnalyticsProfileLabels';
 import { AuthenticationSessionContext } from '../../authentication/application/authenticationSessionContext';
 import { useContext, useEffect, useState } from 'react';
-import styles from '../ui/ProfilePageView.module.css';
+import styles from '../../shared/ui/ProfileSurface/ProfileSurface.module.css';
 import type { AnalyticsProfile } from '../../analyticsProfile/domain/analyticsProfile';
 import type { AnalyticsContributionConsent } from '../../macroAnalytics/domain/analyticsContributionConsent';
 import type { AnalyticsContributionConsentPort } from '../../macroAnalytics/application/analyticsContributionConsent.port';

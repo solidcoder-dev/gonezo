@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react';
-import styles from '../../workspace/ui/ProfilePageView.module.css';
+import styles from '../../shared/ui/ProfileSurface/ProfileSurface.module.css';
 
 export type AuthenticationSecuritySettingsViewProps = {
   readonly enabled: boolean;

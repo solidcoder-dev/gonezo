@@ -130,7 +130,7 @@ export function useWorkspaceToast() {
     id: string;
     remainingMs: number;
     startedAtMs: number;
-    timerId: number | null;
+    timerId: ReturnType<typeof setTimeout> | null;
     pauseReasons: Set<string>;
   } | null>(null);
 
