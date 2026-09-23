@@ -102,6 +102,7 @@ private fun JSONObject.array(name: String) = getJSONArray(name)
 private fun JSONObject.arrayOrEmpty(name: String) = optJSONArray(name) ?: JSONArray()
 private fun JSONObject.arrayOrLegacy(name: String, vararg legacyNames: String): JSONArray = when {
     has(name) -> getJSONArray(name)
+
     else -> legacyNames.firstNotNullOfOrNull { legacyName -> if (has(legacyName)) getJSONArray(legacyName) else null }
         ?: throw org.json.JSONException("JSONObject[\"$name\"] not found")
 }

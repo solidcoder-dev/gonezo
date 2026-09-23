@@ -1,8 +1,8 @@
 package com.gonezo.application.services.workflows
 
+import com.gonezo.application.ConsistencyBoundary
 import com.gonezo.application.orchestration.AutomaticDueScheduledMovementHandler
 import com.gonezo.application.orchestration.ConfirmationRequiredDueScheduledMovementHandler
-import com.gonezo.application.ConsistencyBoundary
 import com.gonezo.application.orchestration.DueScheduledMovementContext
 import com.gonezo.application.orchestration.DueScheduledMovementHandler
 import com.gonezo.application.orchestration.DueScheduledMovementHandlerResult

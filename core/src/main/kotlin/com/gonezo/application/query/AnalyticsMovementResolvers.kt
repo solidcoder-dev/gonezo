@@ -4,23 +4,34 @@ import java.text.Normalizer
 import java.util.Locale
 
 data class AnalyticsMerchantReference(val key: String, val displayName: String) {
-    init { require(key.isNotBlank() && displayName.isNotBlank()) { "merchant reference values are required" } }
+    init {
+        require(key.isNotBlank() && displayName.isNotBlank()) { "merchant reference values are required" }
+    }
 }
 
 data class AnalyticsTagReference(val key: String, val tagId: String?, val displayName: String) {
-    init { require(key.isNotBlank() && displayName.isNotBlank()) { "tag reference values are required" } }
+    init {
+        require(key.isNotBlank() && displayName.isNotBlank()) { "tag reference values are required" }
+    }
 }
 
 object AnalyticsTagReferenceResolver {
     fun resolve(tagIds: Collection<String>, tagNames: List<String>, displayNamesById: Map<String, String>, idsByNormalizedName: Map<String, String>, normalizeName: (String) -> String): List<AnalyticsTagReference> {
         val persistedIds = tagIds.map(String::trim).filter(String::isNotBlank).distinct()
         val referencesById = persistedIds.mapNotNull { id -> displayNamesById[id]?.trim()?.takeIf(String::isNotEmpty)?.let { AnalyticsTagReference("tag:$id", id, it) } }
-        val references = if (referencesById.isNotEmpty()) referencesById else tagNames.mapNotNull { rawName ->
-            val displayName = rawName.trim().takeIf(String::isNotEmpty) ?: return@mapNotNull null
-            val normalizedName = normalizeName(displayName)
-            val tagId = idsByNormalizedName[normalizedName]
-            if (tagId == null) AnalyticsTagReference("name:$normalizedName", null, displayName)
-            else AnalyticsTagReference("tag:$tagId", tagId, displayNamesById[tagId]?.trim()?.takeIf(String::isNotEmpty) ?: displayName)
+        val references = if (referencesById.isNotEmpty()) {
+            referencesById
+        } else {
+            tagNames.mapNotNull { rawName ->
+                val displayName = rawName.trim().takeIf(String::isNotEmpty) ?: return@mapNotNull null
+                val normalizedName = normalizeName(displayName)
+                val tagId = idsByNormalizedName[normalizedName]
+                if (tagId == null) {
+                    AnalyticsTagReference("name:$normalizedName", null, displayName)
+                } else {
+                    AnalyticsTagReference("tag:$tagId", tagId, displayNamesById[tagId]?.trim()?.takeIf(String::isNotEmpty) ?: displayName)
+                }
+            }
         }
         return references.distinctBy(AnalyticsTagReference::key).sortedBy(AnalyticsTagReference::key)
     }
@@ -42,7 +53,9 @@ object AnalyticsCategoryAllocationResolver {
         val full = fullAmount.amount
         val personal = personalAmount.amount
         require(full >= java.math.BigDecimal.ZERO && personal >= java.math.BigDecimal.ZERO) { "category allocation amounts cannot be negative" }
-        val amounts = if (splitAmounts.isEmpty()) listOf(AnalyticsCategoryAmount(categoryId, full)) else {
+        val amounts = if (splitAmounts.isEmpty()) {
+            listOf(AnalyticsCategoryAmount(categoryId, full))
+        } else {
             val splitTotal = splitAmounts.fold(java.math.BigDecimal.ZERO) { total, item -> total + item.amount }
             require(splitAmounts.all { it.amount >= java.math.BigDecimal.ZERO }) { "split allocation amounts cannot be negative" }
             require(splitTotal <= full) { "split allocation total exceeds movement amount" }

@@ -15,13 +15,7 @@ import com.gonezo.taxonomy.domain.ports.TransactionItemCategoryAssignmentReposit
 import com.gonezo.taxonomy.domain.ports.TransactionTagAssignmentRepository
 import java.time.Instant
 
-class BackupTaxonomyAssignmentImporter(
-    private val categoryRepository: CategoryRepository,
-    private val tagRepository: TagRepository,
-    private val categoryAssignmentRepository: TransactionCategoryAssignmentRepository,
-    private val tagAssignmentRepository: TransactionTagAssignmentRepository,
-    private val itemCategoryAssignmentRepository: TransactionItemCategoryAssignmentRepository,
-) {
+class BackupTaxonomyAssignmentImporter(private val categoryRepository: CategoryRepository, private val tagRepository: TagRepository, private val categoryAssignmentRepository: TransactionCategoryAssignmentRepository, private val tagAssignmentRepository: TransactionTagAssignmentRepository, private val itemCategoryAssignmentRepository: TransactionItemCategoryAssignmentRepository) {
     fun importFor(transaction: Transaction, movement: BackupPostedMovement, importedAt: Instant) {
         val categoryId = movement.categoryId?.trim()?.ifBlank { null }?.let(CategoryId::from)
         if (categoryId != null) {

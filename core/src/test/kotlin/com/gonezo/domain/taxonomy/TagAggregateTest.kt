@@ -3,8 +3,8 @@ package com.gonezo.taxonomy.domain
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
-import java.util.Locale
 import java.time.Instant
+import java.util.Locale
 
 class TagAggregateTest {
     @Test
@@ -20,6 +20,7 @@ class TagAggregateTest {
             Locale.setDefault(previousLocale)
         }
     }
+
     @Test
     fun `creates active tag with normalized name`() {
         val tag =

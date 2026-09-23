@@ -11,11 +11,7 @@ import java.time.temporal.ChronoUnit
 class NetWorthTrendCalculator {
     fun balanceOf(transactions: List<NetWorthTransactionRead>): BigDecimal = transactions.sumOf(::transactionBalanceDelta)
 
-    fun calculate(
-        transactions: List<NetWorthTransactionRead>,
-        currency: CurrencyCode,
-        now: Instant,
-    ): List<NetWorthTrendPoint> {
+    fun calculate(transactions: List<NetWorthTransactionRead>, currency: CurrencyCode, now: Instant): List<NetWorthTrendPoint> {
         if (transactions.isEmpty()) {
             return emptyTrend(now, currency)
         }
@@ -45,8 +41,7 @@ class NetWorthTrendCalculator {
         }
     }
 
-    private fun transactionMonth(transaction: NetWorthTransactionRead): YearMonth =
-        YearMonth.from(transaction.occurredAt.atZone(ZoneOffset.UTC))
+    private fun transactionMonth(transaction: NetWorthTransactionRead): YearMonth = YearMonth.from(transaction.occurredAt.atZone(ZoneOffset.UTC))
 
     private fun transactionBalanceDelta(transaction: NetWorthTransactionRead): BigDecimal = when (transaction.type.lowercase()) {
         "income", "transfer_in" -> transaction.amount.amount

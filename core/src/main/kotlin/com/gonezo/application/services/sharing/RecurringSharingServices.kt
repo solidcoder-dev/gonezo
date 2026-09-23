@@ -165,12 +165,11 @@ class DefaultMaterializePlannedShareForPostedMovementService(private val planned
         result.shareId
     }
 
-    private fun payerReference(name: String): SharingPersonReference =
-        if (SharingPerson.normalizeName(name) == SharingPerson.CURRENT_USER_NAME) {
-            SharingPersonReference.CurrentUser
-        } else {
-            SharingPersonReference.New(name)
-        }
+    private fun payerReference(name: String): SharingPersonReference = if (SharingPerson.normalizeName(name) == SharingPerson.CURRENT_USER_NAME) {
+        SharingPersonReference.CurrentUser
+    } else {
+        SharingPersonReference.New(name)
+    }
 
     private fun validateOverride(participants: List<FinalPlannedShareParticipant>, planned: PlannedMovementShare) {
         require(participants.isNotEmpty()) { "sharing override requires participants" }

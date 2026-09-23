@@ -9,11 +9,29 @@ class AnalyticsMovementFactAssembler {
         return resolveIgnored(postedFacts + expectedFacts + scheduledFacts, exclusionReader)
     }
 
-    private fun fact(movement: AnalyticsPostedMovement, source: AnalyticsMovementSource, identity: AnalyticsMovementIdentity, reference: AnalyticsMovementReference, schedulingOrigin: AnalyticsSchedulingOrigin?, splitAmounts: List<AnalyticsCategoryAmount>): AnalyticsMovementFact = AnalyticsMovementFact(identity, source, movement.effectiveAt, movement.accountId, movement.type, movement.currency, movement.personalAmount, movement.fullAmount, movement.ignored, movement.categoryId, movement.tagIds + movement.tags.mapNotNull { it.tagId }, movement.destinationAccountId, AnalyticsFactId(identity.value), reference, allocations(movement.type, movement.categoryId, movement.personalAmount, movement.fullAmount, splitAmounts), schedulingOrigin, movement.sharing, AnalyticsMerchantReferenceResolver.resolve(movement.merchant, movement.type), movement.tags)
+    private fun fact(movement: AnalyticsPostedMovement, source: AnalyticsMovementSource, identity: AnalyticsMovementIdentity, reference: AnalyticsMovementReference, schedulingOrigin: AnalyticsSchedulingOrigin?, splitAmounts: List<AnalyticsCategoryAmount>): AnalyticsMovementFact = AnalyticsMovementFact(
+        identity, source, movement.effectiveAt, movement.accountId, movement.type, movement.currency, movement.personalAmount, movement.fullAmount, movement.ignored, movement.categoryId,
+        movement.tagIds + movement.tags.mapNotNull {
+            it.tagId
+        },
+        movement.destinationAccountId, AnalyticsFactId(identity.value), reference, allocations(movement.type, movement.categoryId, movement.personalAmount, movement.fullAmount, splitAmounts), schedulingOrigin, movement.sharing, AnalyticsMerchantReferenceResolver.resolve(movement.merchant, movement.type), movement.tags,
+    )
 
-    private fun fact(movement: AnalyticsExpectedMovement, source: AnalyticsMovementSource, identity: AnalyticsMovementIdentity, reference: AnalyticsMovementReference, schedulingOrigin: AnalyticsSchedulingOrigin?): AnalyticsMovementFact = AnalyticsMovementFact(identity, source, movement.effectiveAt, movement.accountId, movement.type, movement.currency, movement.personalAmount, movement.fullAmount, movement.ignored, movement.categoryId, movement.tagIds + movement.tags.mapNotNull { it.tagId }, movement.destinationAccountId, AnalyticsFactId(identity.value), reference, allocations(movement.type, movement.categoryId, movement.personalAmount, movement.fullAmount), schedulingOrigin, movement.sharing, AnalyticsMerchantReferenceResolver.resolve(movement.merchant, movement.type), movement.tags)
+    private fun fact(movement: AnalyticsExpectedMovement, source: AnalyticsMovementSource, identity: AnalyticsMovementIdentity, reference: AnalyticsMovementReference, schedulingOrigin: AnalyticsSchedulingOrigin?): AnalyticsMovementFact = AnalyticsMovementFact(
+        identity, source, movement.effectiveAt, movement.accountId, movement.type, movement.currency, movement.personalAmount, movement.fullAmount, movement.ignored, movement.categoryId,
+        movement.tagIds + movement.tags.mapNotNull {
+            it.tagId
+        },
+        movement.destinationAccountId, AnalyticsFactId(identity.value), reference, allocations(movement.type, movement.categoryId, movement.personalAmount, movement.fullAmount), schedulingOrigin, movement.sharing, AnalyticsMerchantReferenceResolver.resolve(movement.merchant, movement.type), movement.tags,
+    )
 
-    private fun fact(movement: AnalyticsScheduledProjection, source: AnalyticsMovementSource, identity: AnalyticsMovementIdentity, reference: AnalyticsMovementReference, schedulingOrigin: AnalyticsSchedulingOrigin?): AnalyticsMovementFact = AnalyticsMovementFact(identity, source, movement.effectiveAt, movement.accountId, movement.type, movement.currency, movement.personalAmount, movement.fullAmount, movement.ignored, movement.categoryId, movement.tagIds + movement.tags.mapNotNull { it.tagId }, movement.destinationAccountId, AnalyticsFactId(identity.value), reference, allocations(movement.type, movement.categoryId, movement.personalAmount, movement.fullAmount), schedulingOrigin, movement.sharing, AnalyticsMerchantReferenceResolver.resolve(movement.merchant, movement.type), movement.tags)
+    private fun fact(movement: AnalyticsScheduledProjection, source: AnalyticsMovementSource, identity: AnalyticsMovementIdentity, reference: AnalyticsMovementReference, schedulingOrigin: AnalyticsSchedulingOrigin?): AnalyticsMovementFact = AnalyticsMovementFact(
+        identity, source, movement.effectiveAt, movement.accountId, movement.type, movement.currency, movement.personalAmount, movement.fullAmount, movement.ignored, movement.categoryId,
+        movement.tagIds + movement.tags.mapNotNull {
+            it.tagId
+        },
+        movement.destinationAccountId, AnalyticsFactId(identity.value), reference, allocations(movement.type, movement.categoryId, movement.personalAmount, movement.fullAmount), schedulingOrigin, movement.sharing, AnalyticsMerchantReferenceResolver.resolve(movement.merchant, movement.type), movement.tags,
+    )
 
     private fun resolveIgnored(facts: List<AnalyticsMovementFact>, exclusionReader: AnalyticsExclusionReader?): List<AnalyticsMovementFact> {
         val resolvedFacts = exclusionReader?.let { reader ->

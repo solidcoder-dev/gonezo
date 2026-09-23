@@ -201,14 +201,20 @@ class AnalyticsMovementFactsTest {
     fun `selected historical occurrence keeps its cadence after the current plan changes`() {
         val identity = AnalyticsMovementIdentity.occurrence("edited-plan-occurrence")
         val historical = AnalyticsSchedulingOrigin(
-            SchedulingKind.RECURRING, "series", "edited-plan-occurrence", AnalyticsRecurrenceCadence("monthly", 1),
+            SchedulingKind.RECURRING,
+            "series",
+            "edited-plan-occurrence",
+            AnalyticsRecurrenceCadence("monthly", 1),
         )
         val currentProjection = AnalyticsScheduledProjection(
             identity, effectiveAt, "account", AnalyticsMovementType.EXPENSE, currency,
             Money.of(BigDecimal("10.00"), "EUR"), Money.of(BigDecimal("10.00"), "EUR"),
             originOccurrenceId = "edited-plan-occurrence",
             schedulingOrigin = AnalyticsSchedulingOrigin(
-                SchedulingKind.RECURRING, "series", "edited-plan-occurrence", AnalyticsRecurrenceCadence("yearly", 1),
+                SchedulingKind.RECURRING,
+                "series",
+                "edited-plan-occurrence",
+                AnalyticsRecurrenceCadence("yearly", 1),
             ),
         )
         val posted = AnalyticsPostedMovement(

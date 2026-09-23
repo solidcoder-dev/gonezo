@@ -2,21 +2,7 @@ package com.gonezo.notifications.domain
 
 import java.time.Instant
 
-class Notification private constructor(
-    val id: NotificationId,
-    val ownerId: String,
-    val type: NotificationType,
-    val deduplicationKey: String,
-    val sourceType: NotificationSourceType,
-    val sourceId: String,
-    val originOccurrenceId: String,
-    val subject: String,
-    val errorCode: String?,
-    val occurredAt: Instant,
-    val createdAt: Instant,
-    val readAt: Instant?,
-    val withdrawnAt: Instant?,
-) {
+class Notification private constructor(val id: NotificationId, val ownerId: String, val type: NotificationType, val deduplicationKey: String, val sourceType: NotificationSourceType, val sourceId: String, val originOccurrenceId: String, val subject: String, val errorCode: String?, val occurredAt: Instant, val createdAt: Instant, val readAt: Instant?, val withdrawnAt: Instant?) {
     val isUnreadActive: Boolean
         get() = readAt == null && withdrawnAt == null
 
@@ -41,19 +27,7 @@ class Notification private constructor(
     )
 
     companion object {
-        fun create(
-            id: NotificationId,
-            ownerId: String,
-            type: NotificationType,
-            deduplicationKey: String,
-            sourceType: NotificationSourceType,
-            sourceId: String,
-            originOccurrenceId: String,
-            subject: String,
-            errorCode: String?,
-            occurredAt: Instant,
-            createdAt: Instant,
-        ): Notification = build(
+        fun create(id: NotificationId, ownerId: String, type: NotificationType, deduplicationKey: String, sourceType: NotificationSourceType, sourceId: String, originOccurrenceId: String, subject: String, errorCode: String?, occurredAt: Instant, createdAt: Instant): Notification = build(
             id = id,
             ownerId = ownerId,
             type = type,
@@ -69,21 +43,7 @@ class Notification private constructor(
             withdrawnAt = null,
         )
 
-        fun rehydrate(
-            id: NotificationId,
-            ownerId: String,
-            type: NotificationType,
-            deduplicationKey: String,
-            sourceType: NotificationSourceType,
-            sourceId: String,
-            originOccurrenceId: String,
-            subject: String,
-            errorCode: String?,
-            occurredAt: Instant,
-            createdAt: Instant,
-            readAt: Instant?,
-            withdrawnAt: Instant?,
-        ): Notification = build(
+        fun rehydrate(id: NotificationId, ownerId: String, type: NotificationType, deduplicationKey: String, sourceType: NotificationSourceType, sourceId: String, originOccurrenceId: String, subject: String, errorCode: String?, occurredAt: Instant, createdAt: Instant, readAt: Instant?, withdrawnAt: Instant?): Notification = build(
             id = id,
             ownerId = ownerId,
             type = type,
@@ -99,21 +59,7 @@ class Notification private constructor(
             withdrawnAt = withdrawnAt,
         )
 
-        private fun build(
-            id: NotificationId,
-            ownerId: String,
-            type: NotificationType,
-            deduplicationKey: String,
-            sourceType: NotificationSourceType,
-            sourceId: String,
-            originOccurrenceId: String,
-            subject: String,
-            errorCode: String?,
-            occurredAt: Instant,
-            createdAt: Instant,
-            readAt: Instant?,
-            withdrawnAt: Instant?,
-        ): Notification {
+        private fun build(id: NotificationId, ownerId: String, type: NotificationType, deduplicationKey: String, sourceType: NotificationSourceType, sourceId: String, originOccurrenceId: String, subject: String, errorCode: String?, occurredAt: Instant, createdAt: Instant, readAt: Instant?, withdrawnAt: Instant?): Notification {
             require(ownerId.isNotBlank()) { "ownerId is required" }
             require(deduplicationKey.isNotBlank()) { "deduplicationKey is required" }
             require(sourceId.isNotBlank()) { "sourceId is required" }

@@ -12,8 +12,8 @@ import com.gonezo.taxonomy.domain.TransactionTagAssignment
 import com.gonezo.taxonomy.infrastructure.persistence.JdbcTaxonomyCategoryRepository
 import com.gonezo.taxonomy.infrastructure.persistence.JdbcTaxonomyTagRepository
 import com.gonezo.taxonomy.infrastructure.persistence.JdbcTaxonomyTransactionCategoryAssignmentRepository
-import com.gonezo.taxonomy.infrastructure.persistence.JdbcTaxonomyTransactionItemTagAssignmentRepository
 import com.gonezo.taxonomy.infrastructure.persistence.JdbcTaxonomyTransactionItemCategoryAssignmentRepository
+import com.gonezo.taxonomy.infrastructure.persistence.JdbcTaxonomyTransactionItemTagAssignmentRepository
 import com.gonezo.taxonomy.infrastructure.persistence.JdbcTaxonomyTransactionTagAssignmentRepository
 import com.gonezo.testing.SqliteE2ETest
 import org.assertj.core.api.Assertions.assertThat

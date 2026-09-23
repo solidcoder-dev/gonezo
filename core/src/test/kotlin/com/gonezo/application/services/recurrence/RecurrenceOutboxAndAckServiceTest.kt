@@ -10,8 +10,8 @@ import com.gonezo.recurrence.domain.RecurrenceOutboxMessage
 import com.gonezo.recurrence.domain.RecurrenceOutboxStatus
 import com.gonezo.recurrence.domain.RecurringMovementId
 import com.gonezo.recurrence.domain.RecurringMovementOccurrence
-import com.gonezo.recurrence.domain.SchedulingKind
 import com.gonezo.recurrence.domain.RecurringMovementOccurrenceStatus
+import com.gonezo.recurrence.domain.SchedulingKind
 import com.gonezo.recurrence.domain.ports.RecurrenceOutboxRepository
 import com.gonezo.recurrence.domain.ports.RecurringMovementOccurrenceRepository
 import org.assertj.core.api.Assertions.assertThat

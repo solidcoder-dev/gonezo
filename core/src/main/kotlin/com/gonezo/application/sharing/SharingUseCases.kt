@@ -1,17 +1,12 @@
 package com.gonezo.sharing.application
 
 import com.gonezo.expected.domain.ExpectedMovementId
-import com.gonezo.sharing.domain.SharedMovementType
 import com.gonezo.sharing.domain.ShareSettlementStatus
+import com.gonezo.sharing.domain.SharedMovementType
 import java.math.BigDecimal
 import java.time.Instant
 
-data class ApplyShareParticipantCommand(
-    val person: SharingPersonReference,
-    val amount: BigDecimal,
-    @Deprecated("Use settlementStatus at the adapter boundary") val reimbursable: Boolean = false,
-    val settlementStatus: ShareSettlementStatus? = null,
-)
+data class ApplyShareParticipantCommand(val person: SharingPersonReference, val amount: BigDecimal, @Deprecated("Use settlementStatus at the adapter boundary") val reimbursable: Boolean = false, val settlementStatus: ShareSettlementStatus? = null)
 
 data class ApplyShareToPostedMovementCommand(val transactionId: String, val payer: SharingPersonReference, val participants: List<ApplyShareParticipantCommand>, val appliedAt: Instant)
 
@@ -31,16 +26,7 @@ data class MovementSharingDetailsView(val shareId: String, val transactionId: St
 
 data class MovementShareParticipantView(val participantId: String, val personId: String, val displayName: String, val amount: BigDecimal, val reimbursable: Boolean, val expectedMovementId: String?, val repaymentStatus: String)
 
-data class MovementSharingAnalyticsView(
-    val personalExpenseAmount: BigDecimal,
-    val excludedLentAmount: BigDecimal,
-    val excludedReimbursementIncomeAmount: BigDecimal,
-    val personalIncomeAmount: BigDecimal = BigDecimal.ZERO,
-    val pendingToCollect: BigDecimal = BigDecimal.ZERO,
-    val pendingToPayOut: BigDecimal = BigDecimal.ZERO,
-    val collected: BigDecimal = BigDecimal.ZERO,
-    val paidOut: BigDecimal = BigDecimal.ZERO,
-)
+data class MovementSharingAnalyticsView(val personalExpenseAmount: BigDecimal, val excludedLentAmount: BigDecimal, val excludedReimbursementIncomeAmount: BigDecimal, val personalIncomeAmount: BigDecimal = BigDecimal.ZERO, val pendingToCollect: BigDecimal = BigDecimal.ZERO, val pendingToPayOut: BigDecimal = BigDecimal.ZERO, val collected: BigDecimal = BigDecimal.ZERO, val paidOut: BigDecimal = BigDecimal.ZERO)
 
 interface GetMovementSharingDetailsUC {
     fun execute(query: GetMovementSharingDetailsQuery): MovementSharingDetailsView?
@@ -48,12 +34,7 @@ interface GetMovementSharingDetailsUC {
 
 data class SharingPersonSuggestionView(val id: String, val displayName: String)
 
-data class SharingGroupSuggestionView(
-    val key: String,
-    val people: List<SharingPersonSuggestionView>,
-    val usageCount: Int,
-    val lastUsedAt: Instant,
-)
+data class SharingGroupSuggestionView(val key: String, val people: List<SharingPersonSuggestionView>, val usageCount: Int, val lastUsedAt: Instant)
 
 interface ListSharingGroupSuggestionsUC {
     fun execute(): List<SharingGroupSuggestionView>

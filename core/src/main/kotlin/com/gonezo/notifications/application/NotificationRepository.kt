@@ -9,10 +9,7 @@ enum class NotificationListFilter {
     UNREAD,
 }
 
-data class NotificationPage(
-    val items: List<NotificationRow>,
-    val nextSequence: Long?,
-)
+data class NotificationPage(val items: List<NotificationRow>, val nextSequence: Long?)
 
 data class NotificationRow(val sequence: Long, val notification: Notification)
 

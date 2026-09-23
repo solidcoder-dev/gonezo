@@ -6,6 +6,8 @@ import com.gonezo.analytics.domain.AnalyticsExclusionScopeType
 import com.gonezo.analytics.domain.ports.AnalyticsExclusionRepository
 import com.gonezo.application.ConsistencyBoundary
 import com.gonezo.application.ImmediateConsistencyBoundary
+import com.gonezo.expected.application.CreateExpectedMovementCommand
+import com.gonezo.expected.application.CreateExpectedMovementUC
 import com.gonezo.expected.domain.ExpectedMovementId
 import com.gonezo.expected.domain.ports.ExpectedMovementRepository
 import com.gonezo.ledger.domain.TransactionStatus
@@ -16,26 +18,16 @@ import com.gonezo.sharing.domain.MovementShareId
 import com.gonezo.sharing.domain.ShareParticipant
 import com.gonezo.sharing.domain.ShareParticipantId
 import com.gonezo.sharing.domain.ShareSettlementStatus
+import com.gonezo.sharing.domain.SharedMovementType
 import com.gonezo.sharing.domain.SharingPerson
 import com.gonezo.sharing.domain.SharingPersonId
-import com.gonezo.sharing.domain.SharedMovementType
 import com.gonezo.sharing.domain.ports.MovementShareRepository
 import com.gonezo.sharing.domain.ports.SharingPersonRepository
-import com.gonezo.expected.application.CreateExpectedMovementCommand
-import com.gonezo.expected.application.CreateExpectedMovementUC
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
 
-class ReplaceMovementShareService(
-    private val transactions: LedgerTransactionRepository,
-    private val people: SharingPersonRepository,
-    private val shares: MovementShareRepository,
-    private val expected: ExpectedMovementRepository,
-    private val createExpected: CreateExpectedMovementUC,
-    private val exclusions: AnalyticsExclusionRepository,
-    private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary,
-) : ReplaceMovementShareUC {
+class ReplaceMovementShareService(private val transactions: LedgerTransactionRepository, private val people: SharingPersonRepository, private val shares: MovementShareRepository, private val expected: ExpectedMovementRepository, private val createExpected: CreateExpectedMovementUC, private val exclusions: AnalyticsExclusionRepository, private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary) : ReplaceMovementShareUC {
     override fun execute(command: ReplaceMovementShareCommand): ApplyShareToPostedMovementResult = consistencyBoundary.withinConsistencyBoundary {
         val transaction = transactions.findById(com.gonezo.ledger.domain.TransactionId.from(command.transactionId))
             ?: throw SharingTransactionNotFound(command.transactionId)
@@ -69,10 +61,14 @@ class ReplaceMovementShareService(
         )
         shares.save(share)
         rebuildExclusions(previous, share, command.updatedAt)
-        ApplyShareToPostedMovementResult(share.id.toString(), command.transactionId, next.map { participant ->
-            val person = people.findById(participant.personId) ?: error("Sharing person not found")
-            AppliedShareParticipantResult(participant.id.toString(), person.id.toString(), person.displayName, participant.amount, participant.requiresSettlement, participant.expectedMovementId?.let(ExpectedMovementId::from), participant.settlementStatus)
-        })
+        ApplyShareToPostedMovementResult(
+            share.id.toString(),
+            command.transactionId,
+            next.map { participant ->
+                val person = people.findById(participant.personId) ?: error("Sharing person not found")
+                AppliedShareParticipantResult(participant.id.toString(), person.id.toString(), person.displayName, participant.amount, participant.requiresSettlement, participant.expectedMovementId?.let(ExpectedMovementId::from), participant.settlementStatus)
+            },
+        )
     }
 
     private fun statusOf(input: ApplyShareParticipantCommand) = when {
@@ -110,7 +106,9 @@ class ReplaceMovementShareService(
     private fun resolvePerson(reference: SharingPersonReference, at: Instant): SharingPerson = when (reference) {
         SharingPersonReference.CurrentUser -> people.findByNormalizedName(SharingPerson.CURRENT_USER_NAME)
             ?: SharingPerson.create(SharingPersonId.random(), SharingPerson.CURRENT_USER_DISPLAY_NAME, at).also(people::save)
+
         is SharingPersonReference.Existing -> people.findById(SharingPersonId.from(reference.personId)) ?: error("Sharing person not found")
+
         is SharingPersonReference.New -> SharingPerson.create(SharingPersonId.random(), reference.displayName, at).also(people::save)
     }
 
@@ -126,13 +124,7 @@ class ReplaceMovementShareService(
     }
 }
 
-class RemoveMovementShareService(
-    private val transactions: LedgerTransactionRepository,
-    private val shares: MovementShareRepository,
-    private val expected: ExpectedMovementRepository,
-    private val exclusions: AnalyticsExclusionRepository,
-    private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary,
-) : RemoveMovementShareUC {
+class RemoveMovementShareService(private val transactions: LedgerTransactionRepository, private val shares: MovementShareRepository, private val expected: ExpectedMovementRepository, private val exclusions: AnalyticsExclusionRepository, private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary) : RemoveMovementShareUC {
     override fun execute(command: RemoveMovementShareCommand) = consistencyBoundary.withinConsistencyBoundary {
         val transaction = transactions.findById(com.gonezo.ledger.domain.TransactionId.from(command.transactionId)) ?: throw SharingTransactionNotFound(command.transactionId)
         require(transaction.status == TransactionStatus.POSTED) { "Only posted transactions can be edited" }

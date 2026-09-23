@@ -12,9 +12,7 @@ import com.gonezo.ledger.domain.TransactionType
 import com.gonezo.ledger.domain.ports.LedgerAccountRepository
 import java.math.BigDecimal
 
-class BackupTransactionFactory(
-    private val accountRepository: LedgerAccountRepository,
-) {
+class BackupTransactionFactory(private val accountRepository: LedgerAccountRepository) {
     fun create(schemaVersion: Int, movement: BackupPostedMovement): Transaction {
         val type = TransactionType.from(movement.type)
         val linkedTransactionId = movement.linkedTransactionId?.trim()?.ifBlank { null }?.let(TransactionId::from)

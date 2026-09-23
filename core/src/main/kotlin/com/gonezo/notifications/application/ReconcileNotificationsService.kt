@@ -7,10 +7,7 @@ fun interface NotificationRelevance {
     fun isRelevant(notification: Notification): Boolean
 }
 
-class ReconcileNotificationsService(
-    private val notifications: NotificationRepository,
-    private val deliveries: NotificationDeliveryQueue,
-) {
+class ReconcileNotificationsService(private val notifications: NotificationRepository, private val deliveries: NotificationDeliveryQueue) {
     fun execute(ownerId: String, relevance: NotificationRelevance, at: Instant): Int {
         val active = notifications.list(ownerId, NotificationListFilter.ALL, beforeSequence = null, limit = 100).items
             .filter { it.notification.withdrawnAt == null }

@@ -2,21 +2,21 @@ package com.gonezo.application.services.sharing
 
 import com.gonezo.sharing.application.RenameSharingPersonCommand
 import com.gonezo.sharing.application.RenameSharingPersonService
+import com.gonezo.sharing.domain.MovementShare
+import com.gonezo.sharing.domain.MovementShareId
 import com.gonezo.sharing.domain.ShareAllocationMode
 import com.gonezo.sharing.domain.ShareParticipant
 import com.gonezo.sharing.domain.ShareParticipantId
 import com.gonezo.sharing.domain.ShareSettlementStatus
 import com.gonezo.sharing.domain.SharedMovementType
-import com.gonezo.sharing.domain.MovementShare
-import com.gonezo.sharing.domain.MovementShareId
 import com.gonezo.sharing.domain.SharingPerson
 import com.gonezo.sharing.domain.SharingPersonId
 import com.gonezo.sharing.domain.ports.SharingPersonRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
-import java.time.Instant
 import java.math.BigDecimal
+import java.time.Instant
 
 class SharingSemanticsDomainTest {
     @Test
@@ -34,6 +34,7 @@ class SharingSemanticsDomainTest {
             .isInstanceOf(IllegalArgumentException::class.java)
             .hasMessage("Sharing person already exists:  Morgan ")
     }
+
     @Test
     fun `sharing semantics expose the closed vocabulary`() {
         assertThat(SharedMovementType.values()).containsExactly(SharedMovementType.EXPENSE, SharedMovementType.INCOME)

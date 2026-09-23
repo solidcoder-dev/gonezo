@@ -1,7 +1,7 @@
 package com.gonezo.application.orchestration
 
-import com.gonezo.application.orchestration.CategorizationStatus
 import com.gonezo.application.orchestration.CategorizationFailed
+import com.gonezo.application.orchestration.CategorizationStatus
 import com.gonezo.application.orchestration.ProcessTransactionCategorizationCommand
 import com.gonezo.application.orchestration.ProcessTransactionCategorizationUC
 import com.gonezo.application.orchestration.TxCategorizationState

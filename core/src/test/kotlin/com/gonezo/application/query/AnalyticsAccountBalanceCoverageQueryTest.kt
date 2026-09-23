@@ -4,9 +4,9 @@ import com.gonezo.ledger.domain.Account
 import com.gonezo.ledger.domain.AccountId
 import com.gonezo.ledger.domain.AccountType
 import com.gonezo.ledger.domain.CurrencyCode
-import java.time.Instant
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import java.time.Instant
 
 class AnalyticsAccountBalanceCoverageQueryTest {
     @Test

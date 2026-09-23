@@ -11,7 +11,28 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
 
-data class CreateRecurringMovementCommand(val type: RecurringMovementType, val sourceAccountId: String, val targetAccountId: String?, val amount: BigDecimal, val currency: String, val destinationAmount: BigDecimal?, val destinationCurrency: String?, val exchangeRate: BigDecimal?, val description: String?, val merchant: String?, val categoryId: String? = null, val reviewPolicy: RecurringMovementReviewPolicy = RecurringMovementReviewPolicy.AUTOMATIC, val splitItems: List<RecurringMovement.SplitItem> = emptyList(), val tagNames: List<String> = emptyList(), val tagIds: List<String> = emptyList(), val rule: RecurrenceRule, val recurrenceEnd: RecurrenceEnd, val startAt: Instant, val zoneId: String, val createdAt: Instant)
+data class CreateRecurringMovementCommand(
+    val type: RecurringMovementType,
+    val sourceAccountId: String,
+    val targetAccountId: String?,
+    val amount: BigDecimal,
+    val currency: String,
+    val destinationAmount: BigDecimal?,
+    val destinationCurrency: String?,
+    val exchangeRate: BigDecimal?,
+    val description: String?,
+    val merchant: String?,
+    val categoryId: String? = null,
+    val reviewPolicy: RecurringMovementReviewPolicy = RecurringMovementReviewPolicy.AUTOMATIC,
+    val splitItems: List<RecurringMovement.SplitItem> = emptyList(),
+    val tagNames: List<String> = emptyList(),
+    val tagIds: List<String> = emptyList(),
+    val rule: RecurrenceRule,
+    val recurrenceEnd: RecurrenceEnd,
+    val startAt: Instant,
+    val zoneId: String,
+    val createdAt: Instant,
+)
 
 interface CreateRecurringMovementUC {
     fun execute(command: CreateRecurringMovementCommand): RecurringMovementId

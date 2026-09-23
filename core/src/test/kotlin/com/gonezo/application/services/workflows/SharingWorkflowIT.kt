@@ -2,20 +2,20 @@ package com.gonezo.application.services.workflows
 
 import com.gonezo.analytics.domain.AnalyticsExclusionReason
 import com.gonezo.analytics.domain.AnalyticsExclusionScopeType
+import com.gonezo.domain.shared.CurrencyCode
 import com.gonezo.domain.shared.Money
 import com.gonezo.expected.application.ResolveExpectedMovementCommand
-import com.gonezo.expected.domain.ExpectedMovementStatus
 import com.gonezo.expected.domain.ExpectedMovementId
+import com.gonezo.expected.domain.ExpectedMovementStatus
 import com.gonezo.ledger.application.OpenLedgerAccountCommand
 import com.gonezo.ledger.application.RecordLedgerExpenseCommand
 import com.gonezo.ledger.domain.AccountType
-import com.gonezo.domain.shared.CurrencyCode
 import com.gonezo.sharing.application.ApplyShareParticipantCommand
 import com.gonezo.sharing.application.ApplyShareToPostedMovementCommand
-import com.gonezo.sharing.application.SharingPersonReference
-import com.gonezo.sharing.domain.SharedMovementType
-import com.gonezo.sharing.domain.ShareSettlementStatus
 import com.gonezo.sharing.application.GetMovementSharingDetailsQuery
+import com.gonezo.sharing.application.SharingPersonReference
+import com.gonezo.sharing.domain.ShareSettlementStatus
+import com.gonezo.sharing.domain.SharedMovementType
 import com.gonezo.testing.SqliteE2ETest
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy

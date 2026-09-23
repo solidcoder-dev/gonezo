@@ -3,12 +3,12 @@ package com.gonezo.persistence.notifications
 import com.gonezo.notifications.application.NotificationListFilter
 import com.gonezo.notifications.application.NotificationLookupResult
 import com.gonezo.notifications.application.NotificationWriteResult
-import com.gonezo.notifications.infrastructure.JdbcNotificationDeliveryQueue
-import com.gonezo.notifications.infrastructure.JdbcNotificationRepository
 import com.gonezo.notifications.domain.Notification
 import com.gonezo.notifications.domain.NotificationId
 import com.gonezo.notifications.domain.NotificationSourceType
 import com.gonezo.notifications.domain.NotificationType
+import com.gonezo.notifications.infrastructure.JdbcNotificationDeliveryQueue
+import com.gonezo.notifications.infrastructure.JdbcNotificationRepository
 import com.gonezo.testing.SqliteE2ETest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -96,11 +96,7 @@ class JdbcNotificationPersistenceContractTest : SqliteE2ETest() {
         assertThat(queue.findEligible(createdAt, 10)).isEmpty()
     }
 
-    private fun notification(
-        deduplicationKey: String,
-        subject: String = "Scheduled movement",
-        ownerId: String = "local-user",
-    ): Notification = Notification.create(
+    private fun notification(deduplicationKey: String, subject: String = "Scheduled movement", ownerId: String = "local-user"): Notification = Notification.create(
         id = NotificationId.random(),
         ownerId = ownerId,
         type = NotificationType.SCHEDULED_PROCESSING_FAILED,

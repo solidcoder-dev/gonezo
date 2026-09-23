@@ -16,8 +16,11 @@ import java.util.UUID
 class JdbcAnalyticsExclusionRepository(private val jdbcTemplate: NamedParameterJdbcTemplate) : AnalyticsExclusionRepository {
     override fun deleteByScope(scopeType: AnalyticsExclusionScopeType, scopeId: String, reason: AnalyticsExclusionReason?) {
         jdbcTemplate.update(
-            if (reason == null) "delete from analytics_exclusions where scope_type = :scope_type and scope_id = :scope_id"
-            else "delete from analytics_exclusions where scope_type = :scope_type and scope_id = :scope_id and reason = :reason",
+            if (reason == null) {
+                "delete from analytics_exclusions where scope_type = :scope_type and scope_id = :scope_id"
+            } else {
+                "delete from analytics_exclusions where scope_type = :scope_type and scope_id = :scope_id and reason = :reason"
+            },
             MapSqlParameterSource().addValue("scope_type", scopeType.value).addValue("scope_id", scopeId).addValue("reason", reason?.value),
         )
     }

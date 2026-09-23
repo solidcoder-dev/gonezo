@@ -24,8 +24,8 @@ import com.gonezo.recurrence.application.AcknowledgeRecurringMovementOccurrenceS
 import com.gonezo.recurrence.application.RecurringMovementDueIntegrationEvent
 import com.gonezo.recurrence.domain.RecurringMovementId
 import com.gonezo.recurrence.domain.RecurringMovementOccurrence
-import com.gonezo.recurrence.domain.SchedulingKind
 import com.gonezo.recurrence.domain.RecurringMovementOccurrenceStatus
+import com.gonezo.recurrence.domain.SchedulingKind
 import com.gonezo.recurrence.domain.ports.RecurringMovementOccurrenceRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy

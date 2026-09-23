@@ -1,18 +1,18 @@
 package com.gonezo.application.orchestration
 
+import com.gonezo.application.orchestration.CategorizationFailed
 import com.gonezo.application.orchestration.CategorizationStatus
 import com.gonezo.application.orchestration.CategorizeLedgerTransactionCommand
 import com.gonezo.application.orchestration.CategorizeLedgerTransactionUC
-import com.gonezo.application.orchestration.CategorizationFailed
 import com.gonezo.application.orchestration.ProcessTransactionCategorizationCommand
 import com.gonezo.application.orchestration.ProcessTransactionCategorizationUC
 import com.gonezo.application.orchestration.TxCategorizationState
 import com.gonezo.taxonomy.application.CreateCategoryCommand
 import com.gonezo.taxonomy.application.CreateCategoryUC
+import com.gonezo.taxonomy.application.TaxonomyCategoryNotFound
 import com.gonezo.taxonomy.domain.CategoryAppliesTo
 import com.gonezo.taxonomy.domain.CategoryId
 import com.gonezo.taxonomy.domain.ports.CategoryRepository
-import com.gonezo.taxonomy.application.TaxonomyCategoryNotFound
 
 class CategorizeLedgerTransactionService(private val categoryRepository: CategoryRepository, private val createCategoryUC: CreateCategoryUC, private val processCategorizationUC: ProcessTransactionCategorizationUC) : CategorizeLedgerTransactionUC {
     override fun execute(command: CategorizeLedgerTransactionCommand): TxCategorizationState {

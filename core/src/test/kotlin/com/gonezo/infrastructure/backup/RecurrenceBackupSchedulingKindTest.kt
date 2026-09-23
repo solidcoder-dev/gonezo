@@ -27,15 +27,18 @@ class RecurrenceBackupSchedulingKindTest {
     fun `version one backup occurrence omitting kind remains readable`() {
         val data = JSONObject()
             .put("movements", org.json.JSONArray())
-            .put("occurrences", org.json.JSONArray().put(
-                JSONObject()
-                    .put("id", "occurrence")
-                    .put("recurringMovementId", "schedule")
-                    .put("dueAt", "2026-01-01T00:00:00Z")
-                    .put("status", "pending")
-                    .put("createdAt", "2026-01-01T00:00:00Z")
-                    .put("updatedAt", "2026-01-01T00:00:00Z"),
-            ))
+            .put(
+                "occurrences",
+                org.json.JSONArray().put(
+                    JSONObject()
+                        .put("id", "occurrence")
+                        .put("recurringMovementId", "schedule")
+                        .put("dueAt", "2026-01-01T00:00:00Z")
+                        .put("status", "pending")
+                        .put("createdAt", "2026-01-01T00:00:00Z")
+                        .put("updatedAt", "2026-01-01T00:00:00Z"),
+                ),
+            )
 
         val decoded = codec.decode(1, data)
 

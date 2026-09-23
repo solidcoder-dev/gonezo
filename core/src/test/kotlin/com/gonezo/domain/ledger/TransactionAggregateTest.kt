@@ -152,7 +152,7 @@ class TransactionAggregateTest {
     @Test
     fun `removes posted breakdown when replacement is empty`() {
         val posted = Transaction.recordExpense(TransactionId.random(), AccountId.random(), Money(BigDecimal("80.00"), "USD"), Instant.now(), null, null)
-            .replacePostedItems(listOf(TransactionItem.create(TransactionItemId.random(), "Food", Money(BigDecimal("80.00"), "USD"), null)));
+            .replacePostedItems(listOf(TransactionItem.create(TransactionItemId.random(), "Food", Money(BigDecimal("80.00"), "USD"), null)))
 
         assertThat(posted.replacePostedItems(emptyList()).items).isEmpty()
     }

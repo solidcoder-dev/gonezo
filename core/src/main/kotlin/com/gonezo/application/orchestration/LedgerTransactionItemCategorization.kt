@@ -12,24 +12,13 @@ import com.gonezo.taxonomy.domain.TransactionItemCategoryAssignment
 import com.gonezo.taxonomy.domain.ports.TransactionItemCategoryAssignmentRepository
 import java.time.Instant
 
-data class AddLedgerTransactionItemWithCategoryCommand(
-    val transactionId: TransactionId,
-    val name: String,
-    val amount: Money,
-    val categoryId: CategoryId?,
-    val note: String?,
-    val requestedAt: Instant,
-)
+data class AddLedgerTransactionItemWithCategoryCommand(val transactionId: TransactionId, val name: String, val amount: Money, val categoryId: CategoryId?, val note: String?, val requestedAt: Instant)
 
 interface AddLedgerTransactionItemWithCategoryUC {
     fun execute(command: AddLedgerTransactionItemWithCategoryCommand): TransactionItemId
 }
 
-class AddLedgerTransactionItemWithCategoryService(
-    private val addLedgerTransactionItemUC: AddLedgerTransactionItemUC,
-    private val itemCategoryAssignmentRepository: TransactionItemCategoryAssignmentRepository,
-    private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary,
-) : AddLedgerTransactionItemWithCategoryUC {
+class AddLedgerTransactionItemWithCategoryService(private val addLedgerTransactionItemUC: AddLedgerTransactionItemUC, private val itemCategoryAssignmentRepository: TransactionItemCategoryAssignmentRepository, private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary) : AddLedgerTransactionItemWithCategoryUC {
     override fun execute(command: AddLedgerTransactionItemWithCategoryCommand): TransactionItemId = consistencyBoundary.withinConsistencyBoundary {
         val itemId = addLedgerTransactionItemUC.execute(
             AddLedgerTransactionItemCommand(
@@ -37,7 +26,7 @@ class AddLedgerTransactionItemWithCategoryService(
                 name = command.name,
                 amount = command.amount,
                 note = command.note,
-            )
+            ),
         )
         command.categoryId?.let { categoryId ->
             itemCategoryAssignmentRepository.upsert(TransactionItemCategoryAssignment.assign(itemId.value, categoryId, command.requestedAt))

@@ -2,7 +2,8 @@ package com.gonezo.recurrence.domain
 
 enum class SchedulingKind(val value: String) {
     RECURRING("recurring"),
-    ONE_SHOT("one_shot");
+    ONE_SHOT("one_shot"),
+    ;
 
     companion object {
         fun from(value: String): SchedulingKind = entries.firstOrNull { it.value == value.trim().lowercase() }
@@ -10,9 +11,8 @@ enum class SchedulingKind(val value: String) {
     }
 }
 
-fun resolveCurrentSchedulingKind(recurrenceEnd: RecurrenceEnd): SchedulingKind =
-    if (recurrenceEnd is RecurrenceEnd.AfterOccurrences && recurrenceEnd.count == 1) {
-        SchedulingKind.ONE_SHOT
-    } else {
-        SchedulingKind.RECURRING
-    }
+fun resolveCurrentSchedulingKind(recurrenceEnd: RecurrenceEnd): SchedulingKind = if (recurrenceEnd is RecurrenceEnd.AfterOccurrences && recurrenceEnd.count == 1) {
+    SchedulingKind.ONE_SHOT
+} else {
+    SchedulingKind.RECURRING
+}

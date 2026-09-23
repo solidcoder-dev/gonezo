@@ -6,12 +6,12 @@ import com.gonezo.analytics.domain.AnalyticsExclusionScopeType
 import com.gonezo.analytics.domain.ports.AnalyticsExclusionRepository
 import com.gonezo.application.ConsistencyBoundary
 import com.gonezo.application.ImmediateConsistencyBoundary
-import com.gonezo.ledger.application.displayedMovementTitle
 import com.gonezo.expected.application.CreateExpectedMovementCommand
 import com.gonezo.expected.application.CreateExpectedMovementUC
 import com.gonezo.expected.domain.ExpectedMovementId
 import com.gonezo.expected.domain.ExpectedMovementStatus
 import com.gonezo.expected.domain.ports.ExpectedMovementRepository
+import com.gonezo.ledger.application.displayedMovementTitle
 import com.gonezo.ledger.domain.TransactionStatus
 import com.gonezo.ledger.domain.TransactionType
 import com.gonezo.ledger.domain.ports.LedgerTransactionRepository
@@ -20,9 +20,9 @@ import com.gonezo.sharing.domain.MovementShareId
 import com.gonezo.sharing.domain.ShareParticipant
 import com.gonezo.sharing.domain.ShareParticipantId
 import com.gonezo.sharing.domain.ShareSettlementStatus
+import com.gonezo.sharing.domain.SharedMovementType
 import com.gonezo.sharing.domain.SharingPerson
 import com.gonezo.sharing.domain.SharingPersonId
-import com.gonezo.sharing.domain.SharedMovementType
 import com.gonezo.sharing.domain.ports.MovementShareRepository
 import com.gonezo.sharing.domain.ports.SharingPersonRepository
 import java.math.BigDecimal
@@ -121,8 +121,10 @@ class ApplyShareToPostedMovementService(private val ledgerTransactionRepository:
 
     private fun resolvePerson(reference: SharingPersonReference, createdAt: java.time.Instant): SharingPerson = when (reference) {
         SharingPersonReference.CurrentUser -> resolveCurrentUser(createdAt)
+
         is SharingPersonReference.Existing -> sharingPersonRepository.findById(SharingPersonId.from(reference.personId))
             ?: throw IllegalArgumentException("Sharing person not found: ${reference.personId}")
+
         is SharingPersonReference.New -> {
             val normalizedName = SharingPerson.normalizeName(reference.displayName)
             require(sharingPersonRepository.findByNormalizedName(normalizedName) == null) {
@@ -132,10 +134,9 @@ class ApplyShareToPostedMovementService(private val ledgerTransactionRepository:
         }
     }
 
-    private fun resolveCurrentUser(createdAt: java.time.Instant): SharingPerson =
-        sharingPersonRepository.findByNormalizedName(SharingPerson.CURRENT_USER_NAME)
-            ?: SharingPerson.create(SharingPersonId.random(), SharingPerson.CURRENT_USER_DISPLAY_NAME, createdAt)
-                .also(sharingPersonRepository::save)
+    private fun resolveCurrentUser(createdAt: java.time.Instant): SharingPerson = sharingPersonRepository.findByNormalizedName(SharingPerson.CURRENT_USER_NAME)
+        ?: SharingPerson.create(SharingPersonId.random(), SharingPerson.CURRENT_USER_DISPLAY_NAME, createdAt)
+            .also(sharingPersonRepository::save)
 
     private fun createAnalyticsExclusions(share: MovementShare, createdAt: java.time.Instant) {
         share.participants
@@ -233,10 +234,7 @@ class GetMovementSharingDetailsService(private val ledgerTransactionRepository: 
     }
 }
 
-class ListSharingGroupSuggestionsService(
-    private val people: SharingPersonRepository,
-    private val shares: MovementShareRepository,
-) : ListSharingGroupSuggestionsUC {
+class ListSharingGroupSuggestionsService(private val people: SharingPersonRepository, private val shares: MovementShareRepository) : ListSharingGroupSuggestionsUC {
     override fun execute(): List<SharingGroupSuggestionView> {
         val peopleById = people.listActive().associateBy { it.id }
         val groups = linkedMapOf<String, MutableGroupSuggestion>()
@@ -273,17 +271,10 @@ class ListSharingGroupSuggestionsService(
             }
     }
 
-    private data class MutableGroupSuggestion(
-        val key: String,
-        val personIds: List<com.gonezo.sharing.domain.SharingPersonId>,
-        var usageCount: Int,
-        var lastUsedAt: java.time.Instant,
-    )
+    private data class MutableGroupSuggestion(val key: String, val personIds: List<com.gonezo.sharing.domain.SharingPersonId>, var usageCount: Int, var lastUsedAt: java.time.Instant)
 }
 
-class RenameSharingPersonService(
-    private val people: SharingPersonRepository,
-) : RenameSharingPersonUC {
+class RenameSharingPersonService(private val people: SharingPersonRepository) : RenameSharingPersonUC {
     override fun execute(command: RenameSharingPersonCommand): SharingPersonSuggestionView {
         require(command.displayName.isNotBlank()) { "sharing person display name is required" }
         val person = people.findById(SharingPersonId.from(command.personId))

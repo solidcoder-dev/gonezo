@@ -2,8 +2,8 @@ package com.gonezo.taxonomy.infrastructure.persistence
 
 import com.gonezo.taxonomy.domain.Tag
 import com.gonezo.taxonomy.domain.TagId
-import com.gonezo.taxonomy.domain.TagStatus
 import com.gonezo.taxonomy.domain.TagName
+import com.gonezo.taxonomy.domain.TagStatus
 import com.gonezo.taxonomy.domain.ports.TagRepository
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource

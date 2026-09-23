@@ -8,23 +8,9 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
-data class ScheduledExpectedNotification(
-    val recurringMovementId: String,
-    val expectedMovementId: String,
-    val originOccurrenceId: String,
-    val dueAt: Instant,
-    val subject: String?,
-    val occurredAt: Instant,
-)
+data class ScheduledExpectedNotification(val recurringMovementId: String, val expectedMovementId: String, val originOccurrenceId: String, val dueAt: Instant, val subject: String?, val occurredAt: Instant)
 
-data class ScheduledFailureNotification(
-    val recurringMovementId: String,
-    val originOccurrenceId: String,
-    val dueAt: Instant,
-    val subject: String?,
-    val errorCode: String,
-    val occurredAt: Instant,
-)
+data class ScheduledFailureNotification(val recurringMovementId: String, val originOccurrenceId: String, val dueAt: Instant, val subject: String?, val errorCode: String, val occurredAt: Instant)
 
 interface ScheduledMovementNotificationRecorder {
     fun recordExpected(event: ScheduledExpectedNotification)
@@ -32,11 +18,7 @@ interface ScheduledMovementNotificationRecorder {
     fun recordFailure(event: ScheduledFailureNotification)
 }
 
-class RecordScheduledMovementNotificationService(
-    private val ownerId: String,
-    private val notifications: NotificationRepository,
-    private val deliveries: NotificationDeliveryQueue,
-) : ScheduledMovementNotificationRecorder {
+class RecordScheduledMovementNotificationService(private val ownerId: String, private val notifications: NotificationRepository, private val deliveries: NotificationDeliveryQueue) : ScheduledMovementNotificationRecorder {
     override fun recordExpected(event: ScheduledExpectedNotification) {
         record(
             type = NotificationType.SCHEDULED_CONFIRMATION_REQUIRED,
@@ -65,17 +47,7 @@ class RecordScheduledMovementNotificationService(
         )
     }
 
-    private fun record(
-        type: NotificationType,
-        sourceType: NotificationSourceType,
-        sourceId: String,
-        recurringMovementId: String,
-        originOccurrenceId: String,
-        dueAt: Instant,
-        subject: String?,
-        errorCode: String?,
-        occurredAt: Instant,
-    ) {
+    private fun record(type: NotificationType, sourceType: NotificationSourceType, sourceId: String, recurringMovementId: String, originOccurrenceId: String, dueAt: Instant, subject: String?, errorCode: String?, occurredAt: Instant) {
         val notification = Notification.create(
             id = NotificationId.random(),
             ownerId = ownerId,

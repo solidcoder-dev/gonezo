@@ -7,10 +7,10 @@ import com.gonezo.ledger.domain.AccountType
 import com.gonezo.ledger.domain.CurrencyCode
 import com.gonezo.ledger.domain.Transaction
 import com.gonezo.ledger.domain.TransactionId
-import java.math.BigDecimal
-import java.time.Instant
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import java.math.BigDecimal
+import java.time.Instant
 
 class AnalyticsAccountBalanceSnapshotQueryTest {
     @Test

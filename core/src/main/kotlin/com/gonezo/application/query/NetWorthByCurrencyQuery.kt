@@ -27,10 +27,7 @@ interface GetNetWorthByCurrencyQuery {
     fun execute(query: NetWorthByCurrencyQuery): NetWorthByCurrencyResult
 }
 
-class GetNetWorthByCurrencyService(
-    private val readPort: NetWorthByCurrencyReadPort,
-    private val trendCalculator: NetWorthTrendCalculator = NetWorthTrendCalculator(),
-) : GetNetWorthByCurrencyQuery {
+class GetNetWorthByCurrencyService(private val readPort: NetWorthByCurrencyReadPort, private val trendCalculator: NetWorthTrendCalculator = NetWorthTrendCalculator()) : GetNetWorthByCurrencyQuery {
     override fun execute(query: NetWorthByCurrencyQuery): NetWorthByCurrencyResult {
         val readData = readPort.read()
         val accountCurrencyById = readData.accounts.associate { it.id to it.currency }
@@ -56,5 +53,4 @@ class GetNetWorthByCurrencyService(
 
         return NetWorthByCurrencyResult(items)
     }
-
 }

@@ -15,29 +15,15 @@ import com.gonezo.taxonomy.domain.ports.TransactionItemCategoryAssignmentReposit
 import com.gonezo.taxonomy.domain.ports.TransactionItemTagAssignmentRepository
 import java.time.Instant
 
-data class PostedTransactionItemBreakdownEntry(
-    val item: TransactionItem,
-    val categoryId: CategoryId?,
-    val tagIds: List<TagId>,
-)
+data class PostedTransactionItemBreakdownEntry(val item: TransactionItem, val categoryId: CategoryId?, val tagIds: List<TagId>)
 
-data class ReplacePostedTransactionItemBreakdownCommand(
-    val transactionId: TransactionId,
-    val items: List<PostedTransactionItemBreakdownEntry>,
-    val changedAt: Instant,
-)
+data class ReplacePostedTransactionItemBreakdownCommand(val transactionId: TransactionId, val items: List<PostedTransactionItemBreakdownEntry>, val changedAt: Instant)
 
 fun interface ReplacePostedTransactionItemBreakdownUC {
     fun execute(command: ReplacePostedTransactionItemBreakdownCommand)
 }
 
-class ReplacePostedTransactionItemBreakdownService(
-    private val replacePostedItems: ReplacePostedTransactionItemsUC,
-    private val transactions: LedgerTransactionRepository,
-    private val itemCategoryAssignments: TransactionItemCategoryAssignmentRepository,
-    private val itemTagAssignments: TransactionItemTagAssignmentRepository,
-    private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary,
-) : ReplacePostedTransactionItemBreakdownUC {
+class ReplacePostedTransactionItemBreakdownService(private val replacePostedItems: ReplacePostedTransactionItemsUC, private val transactions: LedgerTransactionRepository, private val itemCategoryAssignments: TransactionItemCategoryAssignmentRepository, private val itemTagAssignments: TransactionItemTagAssignmentRepository, private val consistencyBoundary: ConsistencyBoundary = ImmediateConsistencyBoundary) : ReplacePostedTransactionItemBreakdownUC {
     override fun execute(command: ReplacePostedTransactionItemBreakdownCommand) = consistencyBoundary.withinConsistencyBoundary {
         val transaction = transactions.findById(command.transactionId) ?: error("Transaction not found: ${command.transactionId}")
         val existingItemIds = transaction.items.map { it.id.value }

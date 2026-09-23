@@ -6,33 +6,14 @@ import com.gonezo.ledger.domain.services.BalanceCalculator
 import java.time.LocalDate
 import java.time.ZoneId
 
-data class AnalyticsAccountBalanceSnapshotInput(
-    val asOfLocalDateExclusive: String,
-    val zoneId: String,
-    val currency: String? = null,
-)
+data class AnalyticsAccountBalanceSnapshotInput(val asOfLocalDateExclusive: String, val zoneId: String, val currency: String? = null)
 
-data class AnalyticsAccountBalanceSnapshotItem(
-    val accountId: String,
-    val accountType: String,
-    val currency: String,
-    val balanceAmount: String,
-)
+data class AnalyticsAccountBalanceSnapshotItem(val accountId: String, val accountType: String, val currency: String, val balanceAmount: String)
 
-data class AnalyticsAccountBalanceSnapshotResult(
-    val asOfLocalDateExclusive: String,
-    val zoneId: String,
-    val items: List<AnalyticsAccountBalanceSnapshotItem>,
-)
+data class AnalyticsAccountBalanceSnapshotResult(val asOfLocalDateExclusive: String, val zoneId: String, val items: List<AnalyticsAccountBalanceSnapshotItem>)
 
-class AnalyticsAccountBalanceSnapshotQuery(
-    private val balanceCalculator: BalanceCalculator = BalanceCalculator(),
-) {
-    fun execute(
-        accounts: Iterable<Account>,
-        transactions: Iterable<Transaction>,
-        input: AnalyticsAccountBalanceSnapshotInput,
-    ): AnalyticsAccountBalanceSnapshotResult {
+class AnalyticsAccountBalanceSnapshotQuery(private val balanceCalculator: BalanceCalculator = BalanceCalculator()) {
+    fun execute(accounts: Iterable<Account>, transactions: Iterable<Transaction>, input: AnalyticsAccountBalanceSnapshotInput): AnalyticsAccountBalanceSnapshotResult {
         require(Regex("^\\d{4}-\\d{2}-\\d{2}$").matches(input.asOfLocalDateExclusive)) {
             "asOfLocalDateExclusive must use YYYY-MM-DD"
         }

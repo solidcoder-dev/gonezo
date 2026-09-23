@@ -88,10 +88,7 @@ class DeliverPendingNotificationsServiceTest : SqliteE2ETest() {
         occurredAt = now, createdAt = now,
     )
 
-    private class FakeSender(
-        private val outcome: SystemNotificationResult,
-        private val exists: Boolean = true,
-    ) : SystemNotificationSender {
+    private class FakeSender(private val outcome: SystemNotificationResult, private val exists: Boolean = true) : SystemNotificationSender {
         val updateCalls = mutableListOf<Int>()
         var removeCalls = 0
 

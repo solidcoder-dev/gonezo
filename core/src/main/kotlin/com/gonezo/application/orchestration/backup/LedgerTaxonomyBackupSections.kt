@@ -29,13 +29,13 @@ import com.gonezo.taxonomy.domain.CategoryId
 import com.gonezo.taxonomy.domain.CategoryStatus
 import com.gonezo.taxonomy.domain.TagId
 import com.gonezo.taxonomy.domain.TagStatus
-import com.gonezo.taxonomy.domain.TransactionItemTagAssignment
 import com.gonezo.taxonomy.domain.TransactionItemCategoryAssignment
+import com.gonezo.taxonomy.domain.TransactionItemTagAssignment
 import com.gonezo.taxonomy.domain.ports.CategoryRepository
 import com.gonezo.taxonomy.domain.ports.TagRepository
 import com.gonezo.taxonomy.domain.ports.TransactionCategoryAssignmentRepository
-import com.gonezo.taxonomy.domain.ports.TransactionItemTagAssignmentRepository
 import com.gonezo.taxonomy.domain.ports.TransactionItemCategoryAssignmentRepository
+import com.gonezo.taxonomy.domain.ports.TransactionItemTagAssignmentRepository
 import com.gonezo.taxonomy.domain.ports.TransactionTagAssignmentRepository
 import java.math.BigDecimal
 import java.util.UUID

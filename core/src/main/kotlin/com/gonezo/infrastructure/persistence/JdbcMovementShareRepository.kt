@@ -2,9 +2,9 @@ package com.gonezo.sharing.infrastructure.persistence
 
 import com.gonezo.sharing.domain.MovementShare
 import com.gonezo.sharing.domain.MovementShareId
+import com.gonezo.sharing.domain.ShareAllocationMode
 import com.gonezo.sharing.domain.ShareParticipant
 import com.gonezo.sharing.domain.ShareParticipantId
-import com.gonezo.sharing.domain.ShareAllocationMode
 import com.gonezo.sharing.domain.ShareSettlementStatus
 import com.gonezo.sharing.domain.SharedMovementType
 import com.gonezo.sharing.domain.SharingPersonId

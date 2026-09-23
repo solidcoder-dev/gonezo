@@ -2,14 +2,7 @@ package com.gonezo.sharing.domain
 
 import java.math.BigDecimal
 
-data class ShareParticipant(
-    val id: ShareParticipantId,
-    val personId: SharingPersonId,
-    val amount: BigDecimal,
-    val settlementStatus: ShareSettlementStatus,
-    val expectedMovementId: String?,
-    val settlementTransactionId: String? = null,
-) {
+data class ShareParticipant(val id: ShareParticipantId, val personId: SharingPersonId, val amount: BigDecimal, val settlementStatus: ShareSettlementStatus, val expectedMovementId: String?, val settlementTransactionId: String? = null) {
     val requiresSettlement: Boolean
         get() = settlementStatus != ShareSettlementStatus.NOT_REQUIRED
 
@@ -22,7 +15,9 @@ data class ShareParticipant(
             ShareSettlementStatus.NOT_REQUIRED -> require(expectedMovementId == null && settlementTransactionId == null) {
                 "non-settled participant cannot reference settlement movements"
             }
+
             ShareSettlementStatus.PENDING -> require(expectedMovementId != null) { "pending participant requires expected movement" }
+
             ShareSettlementStatus.SETTLED -> require(settlementTransactionId != null) { "settled participant requires settlement transaction" }
         }
     }

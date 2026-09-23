@@ -17,11 +17,7 @@ import com.gonezo.taxonomy.domain.ports.CategoryRepository
 import com.gonezo.taxonomy.domain.ports.TagRepository
 import java.time.Instant
 
-class BackupMasterDataImporter(
-    private val accountRepository: LedgerAccountRepository,
-    private val categoryRepository: CategoryRepository,
-    private val tagRepository: TagRepository,
-) {
+class BackupMasterDataImporter(private val accountRepository: LedgerAccountRepository, private val categoryRepository: CategoryRepository, private val tagRepository: TagRepository) {
     fun importAccounts(accounts: List<BackupAccount>, importedAt: Instant) = accounts.forEach { item ->
         val status = AccountStatus.from(item.status)
         accountRepository.save(Account(AccountId.from(item.id), item.name, AccountType.from(item.type), CurrencyCode.from(item.currency), status, importedAt, if (status == AccountStatus.ARCHIVED) importedAt else null))

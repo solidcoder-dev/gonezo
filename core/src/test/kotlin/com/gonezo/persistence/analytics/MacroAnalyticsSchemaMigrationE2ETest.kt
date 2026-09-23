@@ -16,19 +16,28 @@ class MacroAnalyticsSchemaMigrationE2ETest : SqliteE2ETest() {
 
         db.jdbcTemplate.update(
             "insert into macro_analytics_outbox(owner_id, period, revision, publication_json) values (?, ?, ?, ?)",
-            "owner-a", "2026-09", 1, "{}",
+            "owner-a",
+            "2026-09",
+            1,
+            "{}",
         )
         assertThatThrownByDuplicateOutboxKey()
         assertThatThrownBy {
             db.jdbcTemplate.update(
                 "insert into macro_analytics_outbox(owner_id, period, revision, publication_json) values (?, ?, ?, ?)",
-                "owner-a", "2026-10", 0, "{}",
+                "owner-a",
+                "2026-10",
+                0,
+                "{}",
             )
         }
         assertThatThrownBy {
             db.jdbcTemplate.update(
                 "insert into macro_analytics_outbox(owner_id, period, revision, publication_json) values (?, ?, ?, ?)",
-                "owner-a", "2026-13", 1, "{}",
+                "owner-a",
+                "2026-13",
+                1,
+                "{}",
             )
         }
     }
@@ -38,7 +47,12 @@ class MacroAnalyticsSchemaMigrationE2ETest : SqliteE2ETest() {
         db.migrateTo(38)
         db.jdbcTemplate.update(
             "insert into ledger_accounts(id, name, type, currency, status, created_at) values (?, ?, ?, ?, ?, ?)",
-            "account-1", "Cash", "cash", "EUR", "active", "2026-01-01T00:00:00Z",
+            "account-1",
+            "Cash",
+            "cash",
+            "EUR",
+            "active",
+            "2026-01-01T00:00:00Z",
         )
         db.migratePending()
 
@@ -52,7 +66,10 @@ class MacroAnalyticsSchemaMigrationE2ETest : SqliteE2ETest() {
         org.assertj.core.api.Assertions.assertThatThrownBy {
             db.jdbcTemplate.update(
                 "insert into macro_analytics_outbox(owner_id, period, revision, publication_json) values (?, ?, ?, ?)",
-                "owner-a", "2026-09", 1, "{}",
+                "owner-a",
+                "2026-09",
+                1,
+                "{}",
             )
         }
     }
