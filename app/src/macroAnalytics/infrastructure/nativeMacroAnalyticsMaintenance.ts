@@ -30,7 +30,7 @@ const backfillState = new NativeMacroAnalyticsBackfillStateAdapter();
 const processor = new LocalMacroAnalyticsPublicationProcessor(latest);
 const periodSource = createAnalyticsContributionPeriodSource(CorePlugin);
 
-export function runDefaultMacroAnalyticsMaintenance(userId: string, analyticsProfile: Pick<AnalyticsProfilePort, 'get'>): Promise<void> {
+export function runNativeMacroAnalyticsMaintenance(userId: string, analyticsProfile: Pick<AnalyticsProfilePort, 'get'>): Promise<void> {
   return runner.run(userId, async () => {
     await RunMacroAnalyticsMaintenance({
       consent,

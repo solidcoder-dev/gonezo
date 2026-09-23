@@ -43,9 +43,12 @@ import { withMacroAnalyticsConsentLifecycle } from './macroAnalytics/application
 import { withMacroAnalyticsProfileRebuild } from './macroAnalytics/infrastructure/AnalyticsProfileRebuildDecorator';
 import { NativeMacroAnalyticsInvalidationAdapter } from './macroAnalytics/infrastructure/NativeMacroAnalyticsInvalidationAdapter';
 import { MacroAnalyticsMaintenanceLifecycle } from './macroAnalytics/application/MacroAnalyticsMaintenanceLifecycle';
-import { runDefaultMacroAnalyticsMaintenance } from './macroAnalytics/infrastructure/defaultMacroAnalyticsMaintenance';
+import { runNativeMacroAnalyticsMaintenance } from './macroAnalytics/infrastructure/nativeMacroAnalyticsMaintenance';
+import { selectMacroAnalyticsMaintenanceRunner } from './macroAnalytics/infrastructure/macroAnalyticsMaintenanceRuntime';
 
 const systemConsentClock = () => new Date().toISOString();
+const isNativeRuntime = Capacitor.isNativePlatform();
+const runMacroAnalyticsMaintenance = selectMacroAnalyticsMaintenanceRunner(isNativeRuntime, runNativeMacroAnalyticsMaintenance);
 
 const defaultImportFileReader = { readAsBase64: readImportFileAsBase64 };
 const defaultMovementVoiceEntryContext = createDefaultMovementVoiceEntryContext();
@@ -54,25 +57,25 @@ const defaultKeyboardVisibility = createKeyboardVisibilityCapability();
 const defaultNotifications = createNotificationsAdapter();
 const defaultAmountVisibility = new LocalAmountVisibilityAdapter();
 const defaultAuthentication = createAuthenticationService();
-const defaultAnalyticsProfile: AnalyticsProfilePort = Capacitor.isNativePlatform()
+const defaultAnalyticsProfile: AnalyticsProfilePort = isNativeRuntime
   ? new NativeAnalyticsProfileAdapter()
   : new InMemoryAnalyticsProfileAdapter();
-const defaultCore = new CoreAdapter(Capacitor.isNativePlatform()
+const defaultCore = new CoreAdapter(isNativeRuntime
   ? new NativeMacroAnalyticsInvalidationAdapter(async () => {
     const state = await defaultAuthentication.getAuthenticationState();
     return state.status === 'authenticated' ? state.userId : null;
-  }, (userId) => runDefaultMacroAnalyticsMaintenance(userId, defaultAnalyticsProfile))
+  }, (userId) => runMacroAnalyticsMaintenance(userId, defaultAnalyticsProfile))
   : undefined);
-const defaultContributionConsent: AnalyticsContributionConsentPort = Capacitor.isNativePlatform()
+const defaultContributionConsent: AnalyticsContributionConsentPort = isNativeRuntime
   ? new NativeAnalyticsContributionConsentAdapter()
   : new InMemoryAnalyticsContributionConsentAdapter();
-const defaultMacroAnalyticsOutbox: MacroAnalyticsOutboxPort = Capacitor.isNativePlatform()
+const defaultMacroAnalyticsOutbox: MacroAnalyticsOutboxPort = isNativeRuntime
   ? new NativeMacroAnalyticsOutboxAdapter()
   : new InMemoryMacroAnalyticsOutboxAdapter();
-const defaultContributionRebuildQueue = Capacitor.isNativePlatform()
+const defaultContributionRebuildQueue = isNativeRuntime
   ? new NativeContributionRebuildQueueAdapter()
   : new InMemoryContributionRebuildQueueAdapter();
-const defaultMacroAnalyticsBackfillState = Capacitor.isNativePlatform()
+const defaultMacroAnalyticsBackfillState = isNativeRuntime
   ? new NativeMacroAnalyticsBackfillStateAdapter()
   : new InMemoryMacroAnalyticsBackfillStateAdapter();
 const defaultLifecycleContributionConsent = withMacroAnalyticsConsentLifecycle(defaultContributionConsent, {
@@ -83,7 +86,7 @@ const defaultLifecycleContributionConsent = withMacroAnalyticsConsentLifecycle(d
 const defaultLifecycleAnalyticsProfile = withMacroAnalyticsProfileRebuild(
   defaultAnalyticsProfile,
   defaultMacroAnalyticsBackfillState,
-  (userId) => runDefaultMacroAnalyticsMaintenance(userId, defaultAnalyticsProfile),
+  (userId) => runMacroAnalyticsMaintenance(userId, defaultAnalyticsProfile),
 );
 const workspaceRoutes = ['/', '/home', '/accounts', '/analytics', '/analytics/category/:categoryId', '/analytics/forecast', '/movements', '/movements/new', '/movements/search', '/movements/:source/:movementId/edit/:feature', '/profile'];
 
@@ -115,7 +118,7 @@ export function App({ required }: AppProps) {
   const resolvedAnalyticsProfile = required?.analyticsProfile ?? defaultLifecycleAnalyticsProfile;
   const resolvedContributionConsent = required?.contributionConsent ?? defaultLifecycleContributionConsent;
   const resolvedMacroAnalyticsOutbox = required?.macroAnalyticsOutbox ?? defaultMacroAnalyticsOutbox;
-  const runMaintenance = useCallback((userId: string) => runDefaultMacroAnalyticsMaintenance(userId, resolvedAnalyticsProfile), [resolvedAnalyticsProfile]);
+  const runMaintenance = useCallback((userId: string) => runMacroAnalyticsMaintenance(userId, resolvedAnalyticsProfile), [resolvedAnalyticsProfile]);
   const amountVisibility = useAmountVisibilityModel({ port: resolvedAmountVisibility });
   const notificationIntentRouter = <NotificationIntentRouter />;
   const voiceCategorySource = useMemo(() => ({
