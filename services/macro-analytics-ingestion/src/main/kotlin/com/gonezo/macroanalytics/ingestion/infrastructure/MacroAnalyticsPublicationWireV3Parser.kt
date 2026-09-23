@@ -32,78 +32,16 @@ class MacroAnalyticsPublicationWireV3Parser : MacroAnalyticsPublicationPayloadPa
         val contribution = root.requiredObject("contribution").also { it.requireKeys("schemaVersion", "dimensions", "financial", "categories", "recurring") }
         require(contribution.requiredInt("schemaVersion") == 3) { "Protocol and schema versions must both be 3" }
 
-        val dimensions = contribution.requiredObject("dimensions").also { it.requireKeys("countryCode", "regionCode", "sex", "ageBand") }
-        val country = dimensions.requiredString("countryCode").also { require(COUNTRY.matches(it)) }
-        val region = dimensions.requiredString("regionCode").also { require(it.isNotBlank()) }
-        val sex = dimensions.requiredString("sex").also { require(it in SEXES) }
-        val ageBand = dimensions.requiredString("ageBand").also { require(it in AGE_BANDS) }
-        val financial = contribution.requiredObject("financial").also { it.requireKeys("currencies") }
-        val financialCurrencies = financial.requiredArray("currencies").map { item ->
-            val currency = item as? JSONObject ?: error("Currency must be an object")
-            currency.requireKeys("currency", "buckets")
-            val code = currency.requiredString("currency").also { require(CURRENCY.matches(it)) }
-            val buckets = currency.requiredArray("buckets").map { bucketItem ->
-                val bucket = bucketItem as? JSONObject ?: error("Financial bucket must be an object")
-                bucket.requireKeys("source", "kind", "amount", "count")
-                val source = bucket.requiredString("source").also { require(it in SOURCES) }
-                val kind = bucket.requiredString("kind").also { require(it in FINANCIAL_KINDS) }
-                val amount = bucket.requiredString("amount").also { require(AMOUNT.matches(it)) }
-                val count = bucket.requiredInt("count").also { require(it >= 1) }
-                FinancialBucket(source, kind, amount, count)
-            }
-            FinancialCurrency(code, buckets)
-        }
-        require(financialCurrencies.map { it.currency }.distinct().size == financialCurrencies.size)
-
-        val categoryObject = contribution.requiredObject("categories").also { it.requireKeys("currencies") }
-        val categoryCurrencies = categoryObject.requiredArray("currencies").map { item ->
-            val currency = item as? JSONObject ?: error("Category currency must be an object")
-            currency.requireKeys("currency", "buckets")
-            val code = currency.requiredString("currency").also { require(CURRENCY.matches(it)) }
-            val buckets = currency.requiredArray("buckets").map { bucketItem ->
-                val bucket = bucketItem as? JSONObject ?: error("Category bucket must be an object")
-                bucket.requireKeys("source", "kind", "category", "amount")
-                val source = bucket.requiredString("source").also { require(it in SOURCES) }
-                val kind = bucket.requiredString("kind").also { require(it in CATEGORY_KINDS) }
-                val category = bucket.requiredString("category").also { require(it in CATEGORIES) }
-                val amount = bucket.requiredString("amount").also {
-                    require(CANONICAL_POSITIVE_AMOUNT.matches(it))
-                    require(BigDecimal(it).compareTo(BigDecimal.ZERO) > 0)
-                    require(BigDecimal(it).stripTrailingZeros().toPlainString() == it)
-                }
-                CategoryBucket(source, kind, category, amount)
-            }
-            require(buckets.map { listOf(it.source, it.kind, it.category) }.distinct().size == buckets.size)
-            CategoryCurrency(code, buckets)
-        }
-        require(categoryCurrencies.map { it.currency }.distinct().size == categoryCurrencies.size)
-
-        val recurringObject = contribution.requiredObject("recurring").also { it.requireKeys("currencies") }
-        val recurringCurrencies = recurringObject.requiredArray("currencies").map { item ->
-            val currency = item as? JSONObject ?: error("Recurring currency must be an object")
-            currency.requireKeys("currency", "buckets")
-            val code = currency.requiredString("currency").also { require(CURRENCY.matches(it)) }
-            val buckets = currency.requiredArray("buckets").map { bucketItem ->
-                val bucket = bucketItem as? JSONObject ?: error("Recurring bucket must be an object")
-                bucket.requireKeys("source", "kind", "amount", "occurrenceCount", "seriesCount")
-                val source = bucket.requiredString("source").also { require(it in SOURCES) }
-                val kind = bucket.requiredString("kind").also { require(it in CATEGORY_KINDS) }
-                val amount = bucket.requiredString("amount").also { require(AMOUNT.matches(it) && BigDecimal(it).compareTo(BigDecimal.ZERO) >= 0) }
-                val occurrenceCount = bucket.requiredInt("occurrenceCount").also { require(it >= 1) }
-                val seriesCount = bucket.requiredInt("seriesCount").also { require(it >= 1 && it <= occurrenceCount) }
-                RecurringBucket(source, kind, amount, occurrenceCount, seriesCount)
-            }
-            require(buckets.map { listOf(it.source, it.kind) }.distinct().size == buckets.size)
-            RecurringCurrency(code, buckets)
-        }
-        require(recurringCurrencies.map { it.currency }.distinct().size == recurringCurrencies.size)
-
+        val dimensions = contribution.parseContributionDimensions()
+        val financial = contribution.parseFinancialContribution()
+        val categories = contribution.parseCategoryContribution()
+        val recurring = contribution.parseRecurringContribution()
         return ValidatedMacroAnalyticsPublication(
             ProtocolVersion(3),
             ContributorId(contributorId),
             AnalyticsPeriod(period),
             PublicationRevision(revision),
-            MacroAnalyticsContribution(SchemaVersion(3), ContributionDimensions(country, region, sex, ageBand), FinancialContribution(financialCurrencies), CategoryContribution(categoryCurrencies), RecurringContribution(recurringCurrencies)),
+            MacroAnalyticsContribution(SchemaVersion(3), dimensions, financial, categories, recurring),
         )
     }
 
